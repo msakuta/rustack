@@ -1,4 +1,4 @@
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 enum Value<'src> {
     Num(i32),
     Op(&'src str),
@@ -20,7 +20,7 @@ fn main() {
     }
 }
 
-fn parse<'a>(line: &'a str) {
+fn parse<'a>(line: &'a str) -> Vec<Value> {
     let mut stack = vec![];
     let input: Vec<_> = line.split(" ").collect();
     let mut words = &input[..];
@@ -48,6 +48,8 @@ fn parse<'a>(line: &'a str) {
     }
 
     println!("stack: {stack:?}");
+
+    stack
 }
 
 fn parse_block<'src, 'a>(input: &'a [&'src str]) -> (Value<'src>, &'a [&'src str]) {
@@ -101,12 +103,12 @@ fn div(stack: &mut Vec<Value>) {
 
 #[cfg(test)]
 mod test {
+    use super::{parse, Value::*};
     #[test]
     fn test_group() {
-        use Value::*;
-        assert_eq!(parse(
-            "1 2 + { 3 4 }",
+        assert_eq!(
+            parse("1 2 + { 3 4 }"),
             vec![Num(3), Block(vec![Num(3), Num(4)])]
-        ));
+        );
     }
 }
