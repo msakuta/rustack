@@ -90,14 +90,15 @@ fn eval<'src>(code: Value<'src>, vm: &mut Vm<'src>) {
             "-" => sub(&mut vm.stack),
             "*" => mul(&mut vm.stack),
             "/" => div(&mut vm.stack),
+            "<" => lt(&mut vm.stack),
             "if" => op_if(vm),
             "def" => op_def(vm),
             _ => {
-                if let Some(val) = vm.vars.get(op) {
-                    vm.stack.push(val.clone());
-                } else {
-                    panic!("{op:?} is not a defined operation");
-                }
+                let val = vm
+                    .vars
+                    .get(op)
+                    .expect(&format!("{op:?} is not a defined operation"));
+                vm.stack.push(val.clone());
             }
         },
         _ => vm.stack.push(code.clone()),
@@ -129,29 +130,21 @@ fn parse_block<'src, 'a>(input: &'a [&'src str]) -> (Value<'src>, &'a [&'src str
     (Value::Block(tokens), words)
 }
 
-fn add(stack: &mut Vec<Value>) {
-    let rhs = stack.pop().unwrap().as_num();
-    let lhs = stack.pop().unwrap().as_num();
-    stack.push(Value::Num(lhs + rhs));
+macro_rules! impl_op {
+    {$name:ident, $op:tt} => {
+        fn $name(stack: &mut Vec<Value>) {
+            let rhs = stack.pop().unwrap().as_num();
+            let lhs = stack.pop().unwrap().as_num();
+            stack.push(Value::Num((lhs $op rhs) as i32));
+        }
+    }
 }
 
-fn sub(stack: &mut Vec<Value>) {
-    let rhs = stack.pop().unwrap().as_num();
-    let lhs = stack.pop().unwrap().as_num();
-    stack.push(Value::Num(lhs - rhs));
-}
-
-fn mul(stack: &mut Vec<Value>) {
-    let rhs = stack.pop().unwrap().as_num();
-    let lhs = stack.pop().unwrap().as_num();
-    stack.push(Value::Num(lhs * rhs));
-}
-
-fn div(stack: &mut Vec<Value>) {
-    let rhs = stack.pop().unwrap().as_num();
-    let lhs = stack.pop().unwrap().as_num();
-    stack.push(Value::Num(lhs / rhs));
-}
+impl_op!(add, +);
+impl_op!(sub, -);
+impl_op!(mul, *);
+impl_op!(div, /);
+impl_op!(lt, <);
 
 fn op_if(vm: &mut Vm) {
     let false_branch = vm.stack.pop().unwrap().to_block();
@@ -209,5 +202,13 @@ mod test {
     #[test]
     fn test_var() {
         assert_eq!(parse("/x 10 def /y 20 def x y *"), vec![Num(200)]);
+    }
+
+    #[test]
+    fn test_var_if() {
+        assert_eq!(
+            parse("/x 10 def /y 20 def { x y < } { x } { y } if"),
+            vec![Num(10)]
+        );
     }
 }
