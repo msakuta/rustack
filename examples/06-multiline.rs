@@ -98,7 +98,7 @@ fn parse_word(word: &str, vm: &mut Vm) {
         vm.blocks.push(vec![]);
     } else if word == "}" {
         let top_block = vm.blocks.pop().expect("Block stack underflow!");
-        vm.stack.push(Value::Block(top_block));
+        eval(Value::Block(top_block), vm);
     } else {
         let code = if let Ok(num) = word.parse::<i32>() {
             Value::Num(num)
@@ -107,15 +107,15 @@ fn parse_word(word: &str, vm: &mut Vm) {
         } else {
             Value::Op(word.to_string())
         };
-        if let Some(top_block) = vm.blocks.last_mut() {
-            top_block.push(code);
-        } else {
-            eval(code, vm);
-        }
+        eval(code, vm);
     }
 }
 
 fn eval(code: Value, vm: &mut Vm) {
+    if let Some(top_block) = vm.blocks.last_mut() {
+        top_block.push(code);
+        return;
+    }
     match code {
         Value::Op(ref op) => match op as &str {
             "+" => add(&mut vm.stack),
