@@ -1,4 +1,7 @@
-use std::{collections::HashMap, io::BufRead};
+use std::{
+    collections::HashMap,
+    io::{BufRead, BufReader},
+};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 enum Value {
@@ -30,11 +33,20 @@ impl Value {
             panic!("Value is not a symbol");
         }
     }
+
+    fn to_string(&self) -> String {
+        match self {
+            Self::Num(i) => i.to_string(),
+            Self::Op(ref s) | Self::Sym(ref s) => s.clone(),
+            Self::Block(_) => "<Block>".to_string(),
+        }
+    }
 }
 
 struct Vm {
     stack: Vec<Value>,
     vars: HashMap<String, Value>,
+    blocks: Vec<Vec<Value>>,
 }
 
 impl Vm {
@@ -42,54 +54,65 @@ impl Vm {
         Self {
             stack: vec![],
             vars: HashMap::new(),
+            blocks: vec![],
         }
     }
 }
 
 fn main() {
-    let mut vm = Vm::new();
-    for line in std::io::stdin().lines().flatten() {
-        parse_line(&line, &mut vm);
+    if let Some(f) = std::env::args()
+        .nth(1)
+        .and_then(|f| std::fs::File::open(f).ok())
+    {
+        parse_batch(BufReader::new(f));
+    } else {
+        parse_interactive();
     }
 }
 
-fn parse(line: &str) -> Vec<Value> {
+fn parse_batch(source: impl BufRead) -> Vec<Value> {
     let mut vm = Vm::new();
-    let cursor = std::io::Cursor::new(line);
-    for line in cursor.lines().flatten() {
-        parse_line(&line, &mut vm);
+    for line in source.lines().flatten() {
+        for word in line.split(" ") {
+            parse_word(word, &mut vm);
+        }
     }
     vm.stack
 }
 
-fn parse_line<'vm>(line: &str, vm: &'vm mut Vm) -> &'vm [Value] {
-    let input: Vec<_> = line.split(" ").collect();
-    let mut words = &input[..];
-
-    while let Some((&word, mut rest)) = words.split_first() {
-        if word.is_empty() {
-            break;
+fn parse_interactive() {
+    let mut vm = Vm::new();
+    for line in std::io::stdin().lines().flatten() {
+        for word in line.split(" ") {
+            parse_word(word, &mut vm);
         }
-        if word == "{" {
-            let value;
-            (value, rest) = parse_block(rest);
-            vm.stack.push(value);
+        println!("stack: {:?}", vm.stack);
+    }
+}
+
+fn parse_word(word: &str, vm: &mut Vm) {
+    if word.is_empty() {
+        return;
+    }
+    if word == "{" {
+        vm.blocks.push(vec![]);
+    } else if word == "}" {
+        let top_block = vm.blocks.pop().expect("Block stack underflow!");
+        vm.stack.push(Value::Block(top_block));
+    } else {
+        let code = if let Ok(num) = word.parse::<i32>() {
+            Value::Num(num)
+        } else if word.starts_with("/") {
+            Value::Sym(word[1..].to_string())
         } else {
-            let code = if let Ok(num) = word.parse::<i32>() {
-                Value::Num(num)
-            } else if word.starts_with("/") {
-                Value::Sym(word[1..].to_string())
-            } else {
-                Value::Op(word.to_string())
-            };
+            Value::Op(word.to_string())
+        };
+        if let Some(top_block) = vm.blocks.last_mut() {
+            top_block.push(code);
+        } else {
             eval(code, vm);
         }
-        words = rest;
     }
-
-    println!("stack: {:?}", vm.stack);
-
-    &vm.stack
 }
 
 fn eval(code: Value, vm: &mut Vm) {
@@ -102,6 +125,7 @@ fn eval(code: Value, vm: &mut Vm) {
             "<" => lt(&mut vm.stack),
             "if" => op_if(vm),
             "def" => op_def(vm),
+            "puts" => puts(vm),
             _ => {
                 let val = vm
                     .vars
@@ -112,31 +136,6 @@ fn eval(code: Value, vm: &mut Vm) {
         },
         _ => vm.stack.push(code.clone()),
     }
-}
-
-fn parse_block<'src, 'a>(input: &'a [&'src str]) -> (Value, &'a [&'src str]) {
-    let mut tokens = vec![];
-    let mut words = input;
-
-    while let Some((&word, mut rest)) = words.split_first() {
-        if word.is_empty() {
-            break;
-        }
-        if word == "{" {
-            let value;
-            (value, rest) = parse_block(rest);
-            tokens.push(value);
-        } else if word == "}" {
-            return (Value::Block(tokens), rest);
-        } else if let Ok(value) = word.parse::<i32>() {
-            tokens.push(Value::Num(value));
-        } else {
-            tokens.push(Value::Op(word.to_string()));
-        }
-        words = rest;
-    }
-
-    (Value::Block(tokens), words)
 }
 
 macro_rules! impl_op {
@@ -186,9 +185,19 @@ fn op_def(vm: &mut Vm) {
     vm.vars.insert(sym, value);
 }
 
+fn puts(vm: &mut Vm) {
+    let value = vm.stack.pop().unwrap();
+    println!("{}", value.to_string());
+}
+
 #[cfg(test)]
 mod test {
-    use super::{parse, Value::*};
+    use super::{Value::*, *};
+    use std::io::Cursor;
+
+    fn parse(input: &str) -> Vec<Value> {
+        parse_batch(Cursor::new(input))
+    }
 
     #[test]
     fn test_group() {
@@ -217,6 +226,24 @@ mod test {
     fn test_var_if() {
         assert_eq!(
             parse("/x 10 def /y 20 def { x y < } { x } { y } if"),
+            vec![Num(10)]
+        );
+    }
+
+    #[test]
+    fn test_multiline() {
+        assert_eq!(
+            parse(
+                r#"
+/x 10 def
+/y 20 def
+
+{ x y < }
+{ x }
+{ y }
+if
+"#
+            ),
             vec![Num(10)]
         );
     }
