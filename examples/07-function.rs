@@ -88,7 +88,9 @@ impl Vm {
             stack: vec![],
             vars: functions
                 .into_iter()
-                .map(|(name, fun)| (name.to_owned(), Value::Native(NativeOp(fun))))
+                .map(|(name, fun)| {
+                    (name.to_owned(), Value::Native(NativeOp(fun)))
+                })
                 .collect(),
             blocks: vec![],
         }

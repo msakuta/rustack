@@ -52,7 +52,9 @@ fn parse<'a>(line: &'a str) -> Vec<Value> {
     stack
 }
 
-fn parse_block<'src, 'a>(input: &'a [&'src str]) -> (Value<'src>, &'a [&'src str]) {
+fn parse_block<'src, 'a>(
+    input: &'a [&'src str],
+) -> (Value<'src>, &'a [&'src str]) {
     let mut tokens = vec![];
     let mut words = input;
 

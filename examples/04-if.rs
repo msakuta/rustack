@@ -70,7 +70,9 @@ fn eval<'src>(code: Value<'src>, stack: &mut Vec<Value<'src>>) {
     }
 }
 
-fn parse_block<'src, 'a>(input: &'a [&'src str]) -> (Value<'src>, &'a [&'src str]) {
+fn parse_block<'src, 'a>(
+    input: &'a [&'src str],
+) -> (Value<'src>, &'a [&'src str]) {
     let mut tokens = vec![];
     let mut words = input;
 
