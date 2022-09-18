@@ -47,38 +47,36 @@
 
         <div class="justify">
             <h2>Data types</h2>
-            You can declare a type for a variable or function arguments in a syntax like <tt>a: type</tt>
-            or <tt>fn f(a: type)</tt>.
-            <tt>type</tt> can be one of:
+            <span class="code">rusty-stacker</span> has following value types.
+            It is dynamically typed language, so each stack element can have any type at any time.
             <ul>
-                <li>f64</li>
-                <li>f32</li>
-                <li>i64</li>
-                <li>i32</li>
-                <li>str</li>
-                <li>[type] - declares an array of some other types. Can be nested like <tt>[[i32]]</tt>.</li>
+                <li>Num (i32)</li>
+                <li>Symbol</li>
+                <li>Block</li>
+                <li>Native</li>
             </ul>
-
-            Note that the language is still dynamically typed (which I plan to change to static typing eventually),
-            so the type coercion only happens when you assign a value to a typed variable or typed function argument.
 
             <h2>Built-in functions</h2>
             As an experimental language, it has only few Built-in functions.
 
             <ul>
-            <li>print(s, ...) - Prints arguments to the output and a newline.</li>
-            <li>puts(s, ...) - Prints arguments without a newline.</li>
-            <li>type(obj) - Returns a string representing type of given object.</li>
-            <li>len(a: []) -> i64 - Returns length of a given array.</li>
-            <li>push(a: [], val) - Puts an element at the end of the array, expanding its length by 1.</li>
-            <li>hex_string(value: i64) - Converts an integer to 2-digit hexadecimal representation string.</li>
-            <li>set_fill_style(style) - Sets style for painting on the canvas.</li>
-            <li>rectangle(x: i32, y: i32, width: i32, height: i32) - Draws a filled rectangle on the canvas.</li>
+            <li>"puts" - Pop a value from the stack and print it to the console.</li>
+            <li>"+" - addition</li>
+            <li>"-" - subtraction</li>
+            <li>"*" - multiplication</li>
+            <li>"/" - division</li>
+            <li>"&lt" - less-than (yields 1 if true, otherwise 0)</li>
+            <li>"if" - conditional branching, taking 3 argument blocks</li>
+            <li>"def" - pop a symbol (name) and a value and define a variable (a scalar) or a function (a block)</li>
+            <li>"pop" - pop the topmost value from the stack</li>
+            <li>"dup" - duplicate the topmost value of the stack and push it</li>
+            <li>"exch" - exchange the topmost 2 values</li>
+            <li>"index" - pop a value from the stack, and extract a value at stack index specified by the popped value</li>
             </ul>
         </div>
 
         <hr>
-        <p>Source on <a href="https://github.com/msakuta/rusty-parser">GitHub</a>.</p>
+        <p>Source on <a href="https://github.com/msakuta/rusty-stacker">GitHub</a>.</p>
 
     </body>
 </html>
