@@ -1,6 +1,7 @@
 use std::{
     collections::HashMap,
-    io::{BufRead, BufReader}, rc::Rc,
+    io::{BufRead, BufReader},
+    rc::Rc,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -91,7 +92,10 @@ impl<'vm> Vm<'vm> {
             vars: vec![functions
                 .into_iter()
                 .map(|(name, fun)| {
-                    (name.to_owned(), Value::Native(NativeOp(Rc::new(Box::new(fun)))))
+                    (
+                        name.to_owned(),
+                        Value::Native(NativeOp(Rc::new(Box::new(fun)))),
+                    )
                 })
                 .collect()],
             blocks: vec![],
@@ -103,7 +107,10 @@ impl<'vm> Vm<'vm> {
     }
 
     pub fn add_fn(&mut self, name: String, f: Box<dyn Fn(&mut Vm) + 'vm>) {
-        self.vars.first_mut().unwrap().insert(name, Value::Native(NativeOp(Rc::new(f))));
+        self.vars
+            .first_mut()
+            .unwrap()
+            .insert(name, Value::Native(NativeOp(Rc::new(f))));
     }
 
     fn find_var(&self, name: &str) -> Option<Value<'vm>> {
@@ -153,7 +160,10 @@ fn parse_word<'vm, 'f>(word: &str, vm: &'vm mut Vm<'f>) {
     }
 }
 
-fn eval<'f, 'vm>(code: Value<'f>, vm: &'vm mut Vm<'f>) where 'f: 'vm {
+fn eval<'f, 'vm>(code: Value<'f>, vm: &'vm mut Vm<'f>)
+where
+    'f: 'vm,
+{
     if let Some(top_block) = vm.blocks.last_mut() {
         top_block.push(code);
         return;
@@ -258,7 +268,9 @@ mod test {
     use std::io::Cursor;
 
     fn parse(input: &str) -> Vec<Value> {
-        parse_batch(Cursor::new(input))
+        let mut vm = Vm::new();
+        vm.parse_batch(Cursor::new(input));
+        vm.get_stack().to_vec()
     }
 
     #[test]
