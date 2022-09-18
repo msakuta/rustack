@@ -1,0 +1,27 @@
+name: Rust-wasm
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: wasm-pack-action
+      uses: jetli/wasm-pack-action@v0.3.0
+      #with:
+        # Optional version of wasm-pack to install (eg. "v0.9.1", "latest")
+        #version: # optional, default is latest
+    - name: Build
+      run: cd wasm && wasm-pack build --target web
+    - name: Run tests
+      run: cargo test --verbose
