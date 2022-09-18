@@ -1,19 +1,15 @@
-use std::{
-    collections::HashMap,
-    io::{BufRead, BufReader},
-    rc::Rc,
-};
+use std::{collections::HashMap, io::BufRead, rc::Rc};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub enum Value<'vm> {
+pub enum Value<'f> {
     Num(i32),
     Op(String),
     Sym(String),
-    Block(Vec<Value<'vm>>),
-    Native(NativeOp<'vm>),
+    Block(Vec<Value<'f>>),
+    Native(NativeOp<'f>),
 }
 
-impl<'vm> Value<'vm> {
+impl<'f> Value<'f> {
     fn as_num(&self) -> i32 {
         match self {
             Self::Num(val) => *val,
@@ -21,7 +17,7 @@ impl<'vm> Value<'vm> {
         }
     }
 
-    fn to_block(self) -> Vec<Value<'vm>> {
+    fn to_block(self) -> Vec<Value<'f>> {
         match self {
             Self::Block(val) => val,
             _ => panic!("Value is not a block"),
@@ -37,7 +33,7 @@ impl<'vm> Value<'vm> {
     }
 }
 
-impl<'vm> ToString for Value<'vm> {
+impl<'f> ToString for Value<'f> {
     fn to_string(&self) -> String {
         match self {
             Self::Num(i) => i.to_string(),
@@ -49,29 +45,29 @@ impl<'vm> ToString for Value<'vm> {
 }
 
 #[derive(Clone)]
-pub struct NativeOp<'vm>(Rc<Box<dyn Fn(&mut Vm) + 'vm>>);
+pub struct NativeOp<'f>(Rc<Box<dyn Fn(&mut Vm) + 'f>>);
 
-impl<'vm> PartialEq for NativeOp<'vm> {
-    fn eq(&self, other: &NativeOp<'vm>) -> bool {
+impl<'f> PartialEq for NativeOp<'f> {
+    fn eq(&self, other: &NativeOp<'f>) -> bool {
         Rc::as_ptr(&self.0) == Rc::as_ptr(&other.0)
     }
 }
 
-impl<'vm> Eq for NativeOp<'vm> {}
+impl<'f> Eq for NativeOp<'f> {}
 
-impl<'vm> std::fmt::Debug for NativeOp<'vm> {
+impl<'f> std::fmt::Debug for NativeOp<'f> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "<NativeOp>")
     }
 }
 
-pub struct Vm<'vm> {
-    stack: Vec<Value<'vm>>,
-    vars: Vec<HashMap<String, Value<'vm>>>,
-    blocks: Vec<Vec<Value<'vm>>>,
+pub struct Vm<'f> {
+    stack: Vec<Value<'f>>,
+    vars: Vec<HashMap<String, Value<'f>>>,
+    blocks: Vec<Vec<Value<'f>>>,
 }
 
-impl<'vm> Vm<'vm> {
+impl<'f> Vm<'f> {
     pub fn new() -> Self {
         let functions: [(&str, fn(&mut Vm)); 12] = [
             ("+", add),
@@ -102,18 +98,18 @@ impl<'vm> Vm<'vm> {
         }
     }
 
-    pub fn get_stack(&self) -> &[Value<'vm>] {
+    pub fn get_stack(&self) -> &[Value<'f>] {
         &self.stack
     }
 
-    pub fn add_fn(&mut self, name: String, f: Box<dyn Fn(&mut Vm) + 'vm>) {
+    pub fn add_fn(&mut self, name: String, f: Box<dyn Fn(&mut Vm) + 'f>) {
         self.vars
             .first_mut()
             .unwrap()
             .insert(name, Value::Native(NativeOp(Rc::new(f))));
     }
 
-    fn find_var(&self, name: &str) -> Option<Value<'vm>> {
+    fn find_var(&self, name: &str) -> Option<Value<'f>> {
         self.vars
             .iter()
             .rev()
@@ -139,7 +135,7 @@ pub fn parse_interactive() {
     }
 }
 
-fn parse_word<'vm, 'f>(word: &str, vm: &'vm mut Vm<'f>) {
+fn parse_word(word: &str, vm: &mut Vm) {
     if word.is_empty() {
         return;
     }
@@ -160,10 +156,7 @@ fn parse_word<'vm, 'f>(word: &str, vm: &'vm mut Vm<'f>) {
     }
 }
 
-fn eval<'f, 'vm>(code: Value<'f>, vm: &'vm mut Vm<'f>)
-where
-    'f: 'vm,
-{
+fn eval<'f>(code: Value<'f>, vm: &mut Vm<'f>) {
     if let Some(top_block) = vm.blocks.last_mut() {
         top_block.push(code);
         return;
