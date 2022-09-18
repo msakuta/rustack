@@ -27,7 +27,7 @@ document.getElementById("input").value = `
 
 const samples = document.getElementById("samples");
 
-["function.txt", "if.txt", "recurse.txt"]
+["function.txt", "fibonacci.txt", "if.txt", "recurse.txt"]
     .forEach(fileName => {
     const link = document.createElement("a");
     link.href = "#";
