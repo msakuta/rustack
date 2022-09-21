@@ -123,6 +123,16 @@ impl<'f> Vm<'f> {
             }
         }
     }
+
+    pub fn parse_step(&mut self, source: impl BufRead) {
+        if let Some(word) =
+            source.lines().flatten().next().and_then(|line| {
+                line.split(" ").next().map(|word| word.to_owned())
+            })
+        {
+            parse_word(&word, self);
+        }
+    }
 }
 
 pub fn parse_interactive() {

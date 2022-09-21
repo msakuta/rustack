@@ -3,14 +3,11 @@ mod utils;
 use rusty_stacker::Vm;
 use wasm_bindgen::prelude::*;
 
-#[wasm_bindgen]
+#[wasm_bindgen(module = "/wasm_api.js")]
 extern "C" {
-    fn alert(s: &str);
-}
-
-#[wasm_bindgen]
-pub fn greet() {
-    alert("Hello, wasm!");
+    pub(crate) fn wasm_print(s: &str);
+    pub(crate) fn wasm_rectangle(x0: i32, y0: i32, x1: i32, y1: i32);
+    pub(crate) fn wasm_set_fill_style(s: &str);
 }
 
 #[wasm_bindgen]
@@ -33,4 +30,23 @@ pub fn entry(src: &str) -> Result<String, JsValue> {
     let mut buf = buf.borrow().clone();
     buf += &stack;
     Ok(buf)
+}
+
+#[wasm_bindgen]
+pub struct VmHandle {
+    vm: Vm<'static>,
+    src: String,
+}
+
+#[wasm_bindgen]
+pub fn start_step(src: String) -> VmHandle {
+    VmHandle { vm: Vm::new(), src }
+}
+
+#[wasm_bindgen]
+impl VmHandle {
+    pub fn step(&mut self) -> String {
+        self.vm.parse_step(std::io::Cursor::new(&self.src));
+        format!("{:?}", self.vm.get_stack())
+    }
 }

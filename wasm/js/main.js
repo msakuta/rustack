@@ -1,4 +1,4 @@
-import { entry } from "../pkg/index.js";
+import { entry, start_step } from "../pkg/index.js";
 
 
 function runCommon(process) {
@@ -19,7 +19,17 @@ function runCommon(process) {
     }
 }
 
+let vm = null;
+
 document.getElementById("run").addEventListener("click", () => runCommon(entry));
+document.getElementById("run").addEventListener("click", () => runCommon((source) => {
+    if (vm) {
+        const stack = vm.step();
+    }
+    else {
+        vm = start_step(source);
+    }
+}));
 
 document.getElementById("input").value = `
 10 20 + puts
@@ -40,3 +50,12 @@ const samples = document.getElementById("samples");
     samples.appendChild(link);
     samples.append(" ");
 })
+
+// function updateStackSvg() {
+//     const stack = document.getElementById("stack");
+//     while(stack.firstChild)
+//         stack.removeChild(stack.firstChild);
+
+//     for()
+//     stack.appendChild("");
+// }
