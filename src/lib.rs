@@ -124,11 +124,9 @@ impl<'f> Vm<'f> {
         }
     }
 
-    pub fn parse_step(&mut self, source: impl BufRead) {
+    pub fn parse_step(&mut self, source: &mut dyn Iterator<Item = String>) {
         if let Some(word) =
-            source.lines().flatten().next().and_then(|line| {
-                line.split(" ").next().map(|word| word.to_owned())
-            })
+            source.next()
         {
             parse_word(&word, self);
         }

@@ -1,5 +1,6 @@
-import { entry, start_step } from "../pkg/index.js";
+import { init, entry, start_step } from "../pkg/index.js";
 
+init();
 
 function runCommon(process) {
     // Clear output
@@ -22,14 +23,43 @@ function runCommon(process) {
 let vm = null;
 
 document.getElementById("run").addEventListener("click", () => runCommon(entry));
-document.getElementById("run").addEventListener("click", () => runCommon((source) => {
-    if (vm) {
-        const stack = vm.step();
-    }
-    else {
-        vm = start_step(source);
-    }
+document.getElementById("startStep").addEventListener("click", () => runCommon((source) => {
+    vm = start_step(source);
+    updateButtonStates();
+    return runStep();
 }));
+document.getElementById("step").addEventListener("click", () => runCommon(runStep));
+document.getElementById("haltStep").addEventListener("click", () => runCommon((source) => {
+    vm = null;
+    updateButtonStates();
+    return "Step execution halted";
+}));
+
+function runStep() {
+    if (vm) {
+        try {
+            const stack = vm.step();
+            return stack;
+        }
+        catch(e) {
+            vm = null;
+            updateButtonStates();
+            return `Error: ${e}`;
+        }
+    }
+    return "Start step execution first";
+}
+
+function updateButtonStates() {
+    if(vm){
+        document.getElementById("step").removeAttribute("disabled");
+        document.getElementById("haltStep").removeAttribute("disabled");
+    }
+    else{
+        document.getElementById("step").setAttribute("disabled", "");
+        document.getElementById("haltStep").setAttribute("disabled", "");
+    }
+}
 
 document.getElementById("input").value = `
 10 20 + puts
