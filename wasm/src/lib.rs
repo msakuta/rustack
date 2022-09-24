@@ -1,6 +1,7 @@
 mod utils;
 
 use rusty_stacker::Vm;
+use serde::Serialize;
 use wasm_bindgen::prelude::*;
 
 #[wasm_bindgen]
@@ -84,29 +85,34 @@ impl VmHandle {
             .collect())
     }
 
-    pub fn get_vars(&self) -> Result<js_sys::Array, JsValue> {
-        let ret: Vec<Vec<_>> = self
+    /// Return execution stack in JSON string
+    pub fn get_vars(&self) -> Result<String, JsValue> {
+        #[derive(Serialize)]
+        struct ExecFrame {
+            name: String,
+            /// We could return HashMap<String, String>, but it would be mapped to a JS object,
+            /// which in turn changes order every time you run.
+            vars: Vec<[String; 2]>,
+        }
+
+        let ret: Vec<ExecFrame> = self
             .vm
             .get_exec_stack()
             .iter()
             .map(|ex| {
-                ex.as_frame()
-                    .vars
-                    .iter()
-                    .map(|(key, val)| {
-                        [
-                            JsValue::from_str(key),
-                            JsValue::from_str(&format!("{:?}", val)),
-                        ]
-                    })
-                    .flatten()
-                    .collect()
+                let frame = ex.as_frame();
+                ExecFrame {
+                    name: frame.name.clone(),
+                    vars: frame
+                        .vars
+                        .iter()
+                        .map(|(key, val)| [key.clone(), format!("{:?}", val)])
+                        .collect(),
+                }
             })
             .collect();
-        let jsret = ret
-            .iter()
-            .map(|a| a.iter().collect::<js_sys::Array>())
-            .collect();
-        Ok(jsret)
+        let js = serde_json::to_string(&ret)
+            .map_err(|e| JsValue::from_str(&e.to_string()))?;
+        Ok(js)
     }
 }

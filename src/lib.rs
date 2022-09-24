@@ -63,14 +63,16 @@ impl<'f> std::fmt::Debug for NativeOp<'f> {
 
 #[derive(Debug)]
 pub struct ExecFrame<'f> {
+    pub name: String,
     block: Vec<Value<'f>>,
     ip: usize,
     pub vars: HashMap<String, Value<'f>>,
 }
 
 impl<'f> ExecFrame<'f> {
-    fn new(block: Vec<Value<'f>>) -> Self {
+    fn new(name: String, block: Vec<Value<'f>>) -> Self {
         Self {
+            name,
             block,
             ip: 0,
             vars: HashMap::new(),
@@ -186,8 +188,10 @@ impl<'f> Vm<'f> {
         }
 
         if let Some(top_block) = self.blocks.first() {
-            self.exec_stack
-                .push(ExecState::Frame(ExecFrame::new(top_block.clone())));
+            self.exec_stack.push(ExecState::Frame(ExecFrame::new(
+                "root".to_owned(),
+                top_block.clone(),
+            )));
         }
     }
 
@@ -232,8 +236,9 @@ impl<'f> Vm<'f> {
                             } else {
                                 panic!("Top should be IfCond!");
                             };
-                            self.exec_stack
-                                .push(ExecState::IfTrue(ExecFrame::new(block)));
+                            self.exec_stack.push(ExecState::IfTrue(
+                                ExecFrame::new("<IfTrue>".to_owned(), block),
+                            ));
                         } else {
                             let block = if let ExecState::IfCond {
                                 false_branch,
@@ -245,7 +250,7 @@ impl<'f> Vm<'f> {
                                 panic!("Top should be IfCond!");
                             };
                             self.exec_stack.push(ExecState::IfFalse(
-                                ExecFrame::new(block),
+                                ExecFrame::new("<IfFalse>".to_owned(), block),
                             ));
                         }
                     }
@@ -299,7 +304,8 @@ fn eval<'f>(code: &Value<'f>, vm: &mut Vm<'f>) {
             .expect(&format!("{op:?} is not a defined operation"));
         match val {
             Value::Block(block) => {
-                vm.exec_stack.push(ExecState::Frame(ExecFrame::new(block)));
+                vm.exec_stack
+                    .push(ExecState::Frame(ExecFrame::new(op.clone(), block)));
             }
             Value::Native(op) => op.0(vm),
             _ => vm.stack.push(val),
@@ -331,7 +337,7 @@ fn op_if(vm: &mut Vm) {
     let cond = vm.stack.pop().unwrap().to_block();
 
     vm.exec_stack.push(ExecState::IfCond {
-        frame: ExecFrame::new(cond),
+        frame: ExecFrame::new("<IfCond>".to_owned(), cond),
         true_branch,
         false_branch,
     });

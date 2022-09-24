@@ -58,11 +58,12 @@ const stackLeft = 20;
 const frameTop = stackTop + 50;
 const frameLeft = 20;
 const frameMargin = 10;
+const frameNameHeight = 25;
 const varLeft = stackLeft + frameMargin;
 const varWidth = 100;
 const varHeight = 30;
 
-function renderStack(stack, varStack) {
+function renderStack(stack, varStackJson) {
     const canvas = document.getElementById("stack");
     const ctx = canvas.getContext("2d");
     ctx.fillStyle = "rgb(255, 255, 255)";
@@ -76,30 +77,36 @@ function renderStack(stack, varStack) {
         renderRect(ctx, stackLeft + i * 100, stackTop, val);
     }
 
-    console.log(`vars: ${varStack}`);
+    console.log(`vars: ${varStackJson}`);
 
     ctx.fillStyle = "black";
     ctx.fillText("Execution stack:", frameLeft, frameTop - 5);
 
+    const varStack = JSON.parse(varStackJson);
+
     let offset = frameTop;
     for(let n = varStack.length - 1; 0 <= n; n--) {
-        const vars = varStack[n];
-        const varTop = offset + frameMargin;
+        const { name, vars } = varStack[n];
+        const varTop = offset + frameMargin + frameNameHeight;
 
         ctx.beginPath();
-        ctx.rect(frameLeft, offset, varWidth * 2 + frameMargin * 2, varHeight * vars.length / 2 + frameMargin * 2);
+        ctx.rect(frameLeft, offset, varWidth * 2 + frameMargin * 2, varHeight * vars.length + frameMargin * 2 + frameNameHeight);
         ctx.fillStyle = "rgb(191, 191, 191)";
         ctx.fill();
         ctx.strokeStyle = "black";
         ctx.stroke();
 
-        for(let i = 0; i * 2 < vars.length; i++) {
-            const key = vars[i * 2];
-            const value = vars[i * 2 + 1];
+        ctx.fillStyle = "black";
+        ctx.fillText(`function: ${name}`, varLeft, varTop - 20);
+
+        ctx.fillText(`variables:`, varLeft, varTop - 5);
+
+        for(let i = 0; i < vars.length; i++) {
+            const [key, value] = vars[i];
             renderRect(ctx, varLeft, varTop + varHeight * i, key);
             renderRect(ctx, varLeft + varWidth, varTop + varHeight * i, value, "rgb(127, 255, 255)");
         }
-        offset += vars.length / 2 * varHeight + frameMargin * 3;
+        offset += vars.length * varHeight + frameMargin * 3 + frameNameHeight;
     }
 }
 
