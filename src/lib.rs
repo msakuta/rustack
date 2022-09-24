@@ -226,6 +226,12 @@ impl<'f> Vm<'f> {
             byte_count += 1;
         }
 
+        parse_word(
+            std::str::from_utf8(&tokenbuf).unwrap(),
+            self,
+            byte_count - tokenbuf.len(),
+        );
+
         if let Some(top_block) = self.blocks.first() {
             self.exec_stack.push(ExecState::Frame(ExecFrame::new(
                 "root".to_owned(),
