@@ -26,6 +26,9 @@ to implement such a language.
 Each example source file in `examples` directory is prefixed with a number, which indicates
 the step of the particular source file in the progress.
 
+A notable difference from PostScript is that the dictionary stack and the execution stack is
+the same, i.e. when you call a function, it will implicitly introduce a local namespace.
+
 ## Wasm demo
 
 As always, I prepared a Wasm interpreter that you can play around with in your browser.

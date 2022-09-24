@@ -17,6 +17,11 @@
                 font-family:Monospace;
                 font-size:15px;
             }
+            .fixedCode {
+                font-family: Monospace;
+                text-align: left;
+                border: solid 1px black;
+            }
             .justify {
                 text-align: justify;
                 padding: 2em;
@@ -26,19 +31,36 @@
     <body>
         <h1>rusty-stacker Wasm</h1>
         <hr>
-        <div>
-            Samples: <span id="samples"></span>
-        </div>
-        <div class="code">
-            <textarea  id="input" type="text" cols="120" rows="20" ></textarea>
-        </div>
+        <div style="display: flex">
+            <div style="margin: 20px">
+                <div>
+                    Samples: <span id="samples"></span>
+                </div>
+                <div id="code" class="code">
+                    <textarea  id="input" type="text" cols="80" rows="20" ></textarea>
+                </div>
+                <pre id="fixedCode" class="fixedCode" style="display: none">
+                    <div id="fixedInput" ></div>
+                </pre>
 
-        <div>
-            <button id="run">Run</button>
-        </div>
+                <div>
+                    <button id="run">Run</button>
+                    <button id="startStep">Start Step Execution</button>
+                    <button id="step" disabled>Step</button>
+                    <button id="haltStep" disabled>Halt</button>
+                </div>
 
-        <div class="code">
-            <textarea  id="output" type="text" readonly cols="120"  rows="20" ></textarea>
+                <div class="code">
+                    <textarea  id="output" type="text" readonly cols="80"  rows="15" ></textarea>
+                </div>
+            </div>
+
+            <div style="margin: 20px;">
+                <div style="font-size: 20px;">Execution state:</div>
+                <div style="max-height: 500px; overflow: auto;">
+                    <canvas id="stack" width="500" height="500" style="border: solid 1px black"> </canvas>
+                </div>
+            </div>
         </div>
 
         <h2>Canvas:</h2>

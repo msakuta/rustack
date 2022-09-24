@@ -5,7 +5,7 @@ pub enum Value<'f> {
     Num(i32),
     Op(String),
     Sym(String),
-    Block(Vec<Value<'f>>),
+    Block(BlockSpan<'f>),
     Native(NativeOp<'f>),
 }
 
@@ -17,7 +17,7 @@ impl<'f> Value<'f> {
         }
     }
 
-    fn to_block(self) -> Vec<Value<'f>> {
+    fn to_block(self) -> BlockSpan<'f> {
         match self {
             Self::Block(val) => val,
             _ => panic!("Value is not a block"),
@@ -38,7 +38,9 @@ impl<'f> ToString for Value<'f> {
         match self {
             Self::Num(i) => i.to_string(),
             Self::Op(ref s) | Self::Sym(ref s) => s.clone(),
-            Self::Block(_) => "<Block>".to_string(),
+            Self::Block(block) => {
+                format!("<Block [{},{}]>", block.span.0, block.span.1)
+            }
             Self::Native(_) => "<Native>".to_string(),
         }
     }
@@ -61,15 +63,86 @@ impl<'f> std::fmt::Debug for NativeOp<'f> {
     }
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ValueSpan<'f> {
+    value: Value<'f>,
+    span: (usize, usize),
+}
+
+#[derive(Debug)]
+pub struct ExecFrame<'f> {
+    pub name: String,
+    block: BlockSpan<'f>,
+    ip: usize,
+    pub vars: HashMap<String, Value<'f>>,
+}
+
+impl<'f> ExecFrame<'f> {
+    fn new(name: String, block: BlockSpan<'f>) -> Self {
+        Self {
+            name,
+            block,
+            ip: 0,
+            vars: HashMap::new(),
+        }
+    }
+}
+
+#[derive(Debug)]
+pub enum ExecState<'f> {
+    Frame(ExecFrame<'f>),
+    IfCond {
+        frame: ExecFrame<'f>,
+        true_branch: BlockSpan<'f>,
+        false_branch: BlockSpan<'f>,
+    },
+    IfTrue(ExecFrame<'f>),
+    IfFalse(ExecFrame<'f>),
+}
+
+impl<'f> ExecState<'f> {
+    pub fn as_frame(&self) -> &ExecFrame<'f> {
+        match self {
+            Self::Frame(frame) => frame,
+            Self::IfCond { frame, .. } => frame,
+            Self::IfTrue(frame) | Self::IfFalse(frame) => frame,
+        }
+    }
+
+    fn as_frame_mut(&mut self) -> &mut ExecFrame<'f> {
+        match self {
+            Self::Frame(frame) => frame,
+            Self::IfCond { frame, .. } => frame,
+            Self::IfTrue(frame) | Self::IfFalse(frame) => frame,
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct BlockSpan<'f> {
+    block: Vec<ValueSpan<'f>>,
+    span: (usize, usize),
+}
+
+impl<'f> BlockSpan<'f> {
+    fn new(start: usize) -> Self {
+        Self {
+            block: vec![],
+            span: (start, 0),
+        }
+    }
+}
+
 pub struct Vm<'f> {
     stack: Vec<Value<'f>>,
-    vars: Vec<HashMap<String, Value<'f>>>,
-    blocks: Vec<Vec<Value<'f>>>,
+    globals: HashMap<String, Value<'f>>,
+    exec_stack: Vec<ExecState<'f>>,
+    blocks: Vec<BlockSpan<'f>>,
 }
 
 impl<'f> Vm<'f> {
     pub fn new() -> Self {
-        let functions: [(&str, fn(&mut Vm)); 12] = [
+        let functions: [(&str, fn(&mut Vm)); 13] = [
             ("+", add),
             ("-", sub),
             ("*", mul),
@@ -82,10 +155,11 @@ impl<'f> Vm<'f> {
             ("dup", dup),
             ("exch", exch),
             ("index", index),
+            ("load", load),
         ];
         Self {
             stack: vec![],
-            vars: vec![functions
+            globals: functions
                 .into_iter()
                 .map(|(name, fun)| {
                     (
@@ -93,8 +167,9 @@ impl<'f> Vm<'f> {
                         Value::Native(NativeOp(Rc::new(Box::new(fun)))),
                     )
                 })
-                .collect()],
-            blocks: vec![],
+                .collect(),
+            exec_stack: vec![],
+            blocks: vec![BlockSpan::new(0)],
         }
     }
 
@@ -102,25 +177,151 @@ impl<'f> Vm<'f> {
         &self.stack
     }
 
+    pub fn pop(&mut self) -> Option<Value<'f>> {
+        self.stack.pop()
+    }
+
+    pub fn get_exec_stack(&self) -> &[ExecState<'f>] {
+        &self.exec_stack
+    }
+
     pub fn add_fn(&mut self, name: String, f: Box<dyn Fn(&mut Vm) + 'f>) {
-        self.vars
-            .first_mut()
-            .unwrap()
+        self.globals
             .insert(name, Value::Native(NativeOp(Rc::new(f))));
     }
 
     fn find_var(&self, name: &str) -> Option<Value<'f>> {
-        self.vars
+        self.exec_stack
             .iter()
             .rev()
-            .find_map(|vars| vars.get(name).map(|var| var.to_owned()))
+            .find_map(|state| {
+                if let ExecState::Frame(frame) = state {
+                    frame.vars.get(name).cloned()
+                } else {
+                    None
+                }
+            })
+            .or_else(|| self.globals.get(name).cloned())
+    }
+
+    pub fn get_vars(&self) -> &HashMap<String, Value> {
+        &self.exec_stack.last().unwrap().as_frame().vars
     }
 
     pub fn parse_batch(&mut self, source: impl BufRead) {
-        for line in source.lines().flatten() {
-            for word in line.split(" ") {
-                parse_word(word, self);
+        let mut tokenbuf = vec![];
+        let mut byte_count = 0;
+        for byte in source.bytes().map(|b| b.unwrap()) {
+            match byte {
+                b' ' | b'\t' | b'\r' | b'\n' => {
+                    parse_word(
+                        std::str::from_utf8(&tokenbuf).unwrap(),
+                        self,
+                        byte_count - tokenbuf.len(),
+                    );
+                    tokenbuf.clear();
+                }
+                _ => tokenbuf.push(byte),
             }
+            byte_count += 1;
+        }
+
+        parse_word(
+            std::str::from_utf8(&tokenbuf).unwrap(),
+            self,
+            byte_count - tokenbuf.len(),
+        );
+
+        if let Some(top_block) = self.blocks.first() {
+            self.exec_stack.push(ExecState::Frame(ExecFrame::new(
+                "root".to_owned(),
+                top_block.clone(),
+            )));
+        }
+    }
+
+    pub fn eval_all(&mut self) {
+        while self.eval_step().is_some() {}
+    }
+
+    pub fn eval_step(&mut self) -> Option<(usize, usize)> {
+        let get_step = |frame: &mut ExecFrame<'f>| {
+            if frame.ip < frame.block.block.len() {
+                let value_span = frame.block.block[frame.ip].clone();
+                frame.ip += 1;
+                Some(value_span)
+            } else {
+                None
+            }
+        };
+
+        if let Some(state) = self.exec_stack.last_mut() {
+            match state {
+                ExecState::Frame(frame)
+                | ExecState::IfTrue(frame)
+                | ExecState::IfFalse(frame) => {
+                    if let Some(value_span) = get_step(frame) {
+                        eval(&value_span.value, self);
+                        Some(value_span.span)
+                    } else {
+                        let frame = self.exec_stack.pop();
+                        Some(
+                            frame
+                                .map(|frame| frame.as_frame().block.span)
+                                .unwrap_or((0, 0)),
+                        )
+                    }
+                }
+                ExecState::IfCond { frame, .. } => {
+                    if let Some(value_span) = get_step(frame) {
+                        eval(&value_span.value, self);
+                        Some(value_span.span)
+                    } else {
+                        let cond = self.stack.pop().unwrap();
+                        if cond.as_num() != 0 {
+                            let block = if let ExecState::IfCond {
+                                true_branch,
+                                ..
+                            } = self.exec_stack.pop().unwrap()
+                            {
+                                true_branch
+                            } else {
+                                panic!("Top should be IfCond!");
+                            };
+                            let ret = block
+                                .block
+                                .first()
+                                .map(|first| first.span)
+                                .unwrap_or((0, 0));
+                            self.exec_stack.push(ExecState::IfTrue(
+                                ExecFrame::new("<IfTrue>".to_owned(), block),
+                            ));
+                            Some(ret)
+                        } else {
+                            let block = if let ExecState::IfCond {
+                                false_branch,
+                                ..
+                            } = self.exec_stack.pop().unwrap()
+                            {
+                                false_branch
+                            } else {
+                                panic!("Top should be IfCond!");
+                            };
+                            let ret = block
+                                .block
+                                .first()
+                                .map(|first| first.span)
+                                .unwrap_or((0, 0));
+                            self.exec_stack.push(ExecState::IfFalse(
+                                ExecFrame::new("<IfFalse>".to_owned(), block),
+                            ));
+                            Some(ret)
+                        }
+                    }
+                }
+            }
+        } else {
+            None
         }
     }
 }
@@ -129,22 +330,29 @@ pub fn parse_interactive() {
     let mut vm = Vm::new();
     for line in std::io::stdin().lines().flatten() {
         for word in line.split(" ") {
-            parse_word(word, &mut vm);
+            let offset = word.as_ptr() as usize - line.as_ptr() as usize;
+            parse_word(word, &mut vm, offset);
         }
         println!("stack: {:?}", vm.stack);
     }
 }
 
-fn parse_word(word: &str, vm: &mut Vm) {
+fn parse_word(word: &str, vm: &mut Vm, offset: usize) {
     if word.is_empty() {
         return;
     }
     if word == "{" {
-        vm.blocks.push(vec![]);
+        vm.blocks.push(BlockSpan::new(offset));
     } else if word == "}" {
-        let top_block = vm.blocks.pop().expect("Block stack underflow!");
-        eval(Value::Block(top_block), vm);
-    } else {
+        let mut new_block = vm.blocks.pop().expect("Block stack underflow!");
+        if let Some(top_block) = vm.blocks.last_mut() {
+            new_block.span.1 = offset + 1;
+            top_block.block.push(ValueSpan {
+                span: (new_block.span.0, offset + 1),
+                value: Value::Block(new_block),
+            });
+        }
+    } else if let Some(top_block) = vm.blocks.last_mut() {
         let code = if let Ok(num) = word.parse::<i32>() {
             Value::Num(num)
         } else if word.starts_with("/") {
@@ -152,26 +360,23 @@ fn parse_word(word: &str, vm: &mut Vm) {
         } else {
             Value::Op(word.to_string())
         };
-        eval(code, vm);
+        top_block.block.push(ValueSpan {
+            value: code,
+            span: (offset, offset + word.len()),
+        });
+        // eval(code, vm);
     }
 }
 
-fn eval<'f>(code: Value<'f>, vm: &mut Vm<'f>) {
-    if let Some(top_block) = vm.blocks.last_mut() {
-        top_block.push(code);
-        return;
-    }
+fn eval<'f>(code: &Value<'f>, vm: &mut Vm<'f>) {
     if let Value::Op(ref op) = code {
         let val = vm
             .find_var(op)
             .expect(&format!("{op:?} is not a defined operation"));
         match val {
             Value::Block(block) => {
-                vm.vars.push(HashMap::new());
-                for code in block {
-                    eval(code, vm);
-                }
-                vm.vars.pop();
+                vm.exec_stack
+                    .push(ExecState::Frame(ExecFrame::new(op.clone(), block)));
             }
             Value::Native(op) => op.0(vm),
             _ => vm.stack.push(val),
@@ -202,30 +407,25 @@ fn op_if(vm: &mut Vm) {
     let true_branch = vm.stack.pop().unwrap().to_block();
     let cond = vm.stack.pop().unwrap().to_block();
 
-    for code in cond {
-        eval(code, vm);
-    }
-
-    let cond_result = vm.stack.pop().unwrap().as_num();
-
-    if cond_result != 0 {
-        for code in true_branch {
-            eval(code, vm);
-        }
-    } else {
-        for code in false_branch {
-            eval(code, vm);
-        }
-    }
+    vm.exec_stack.push(ExecState::IfCond {
+        frame: ExecFrame::new("<IfCond>".to_owned(), cond),
+        true_branch,
+        false_branch,
+    });
 }
 
 fn op_def(vm: &mut Vm) {
     let value = vm.stack.pop().unwrap();
-    eval(value, vm);
+    eval(&value, vm);
     let value = vm.stack.pop().unwrap();
     let sym = vm.stack.pop().unwrap().as_sym().to_string();
 
-    vm.vars.last_mut().unwrap().insert(sym, value);
+    vm.exec_stack
+        .last_mut()
+        .unwrap()
+        .as_frame_mut()
+        .vars
+        .insert(sym, value);
 }
 
 fn puts(vm: &mut Vm) {
@@ -255,6 +455,12 @@ fn index(vm: &mut Vm) {
     vm.stack.push(value);
 }
 
+fn load(vm: &mut Vm) {
+    let key = vm.stack.pop().unwrap();
+    let value = vm.find_var(key.as_sym()).unwrap();
+    vm.stack.push(value);
+}
+
 #[cfg(test)]
 mod test {
     use super::{Value::*, *};
@@ -263,14 +469,25 @@ mod test {
     fn parse(input: &str) -> Vec<Value> {
         let mut vm = Vm::new();
         vm.parse_batch(Cursor::new(input));
+        vm.eval_all();
         vm.get_stack().to_vec()
+    }
+
+    fn span(value: Value, span: (usize, usize)) -> ValueSpan {
+        ValueSpan { value, span }
     }
 
     #[test]
     fn test_group() {
         assert_eq!(
             parse("1 2 + { 3 4 }"),
-            vec![Num(3), Block(vec![Num(3), Num(4)])]
+            vec![
+                Num(3),
+                Block(BlockSpan {
+                    block: vec![span(Num(3), (8, 9)), span(Num(4), (10, 11))],
+                    span: (6, 13),
+                })
+            ]
         );
     }
 
