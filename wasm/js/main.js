@@ -63,30 +63,37 @@ const varLeft = stackLeft + frameMargin;
 const varWidth = 100;
 const varHeight = 30;
 
-function renderStack(stack, varStackJson) {
+function estimateHeight(stack, execStack) {
+    let offset = frameTop;
+    for(let n = execStack.length - 1; 0 <= n; n--) {
+        offset += execStack[n].vars.length * varHeight + frameMargin * 3 + frameNameHeight;
+    }
+    return offset;
+}
+
+function renderStack(stack, execStackJson) {
+    const execStack = JSON.parse(execStackJson);
+
     const canvas = document.getElementById("stack");
+    canvas.height = estimateHeight(stack, execStack);
     const ctx = canvas.getContext("2d");
     ctx.fillStyle = "rgb(255, 255, 255)";
-    ctx.fillRect(0, 0, 500, 500);
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
 
     ctx.fillStyle = "black";
-    ctx.fillText("Stack:", stackLeft, stackTop - 5);
+    ctx.fillText(`Stack[${stack.length}]: `, stackLeft, stackTop - 5);
 
     for(let i in stack) {
         const val = stack[i];
         renderRect(ctx, stackLeft + i * 100, stackTop, val);
     }
 
-    console.log(`vars: ${varStackJson}`);
-
     ctx.fillStyle = "black";
-    ctx.fillText("Execution stack:", frameLeft, frameTop - 5);
-
-    const varStack = JSON.parse(varStackJson);
+    ctx.fillText(`Execution stack[${execStack.length}]:`, frameLeft, frameTop - 5);
 
     let offset = frameTop;
-    for(let n = varStack.length - 1; 0 <= n; n--) {
-        const { name, vars } = varStack[n];
+    for(let n = execStack.length - 1; 0 <= n; n--) {
+        const { name, vars } = execStack[n];
         const varTop = offset + frameMargin + frameNameHeight;
 
         ctx.beginPath();
