@@ -142,7 +142,7 @@ pub struct Vm<'f> {
 
 impl<'f> Vm<'f> {
     pub fn new() -> Self {
-        let functions: [(&str, fn(&mut Vm)); 12] = [
+        let functions: [(&str, fn(&mut Vm)); 13] = [
             ("+", add),
             ("-", sub),
             ("*", mul),
@@ -155,6 +155,7 @@ impl<'f> Vm<'f> {
             ("dup", dup),
             ("exch", exch),
             ("index", index),
+            ("load", load),
         ];
         Self {
             stack: vec![],
@@ -174,6 +175,10 @@ impl<'f> Vm<'f> {
 
     pub fn get_stack(&self) -> &[Value<'f>] {
         &self.stack
+    }
+
+    pub fn pop(&mut self) -> Option<Value<'f>> {
+        self.stack.pop()
     }
 
     pub fn get_exec_stack(&self) -> &[ExecState<'f>] {
@@ -441,6 +446,12 @@ fn exch(vm: &mut Vm) {
 fn index(vm: &mut Vm) {
     let index = vm.stack.pop().unwrap().as_num() as usize;
     let value = vm.stack[vm.stack.len() - index - 1].clone();
+    vm.stack.push(value);
+}
+
+fn load(vm: &mut Vm) {
+    let key = vm.stack.pop().unwrap();
+    let value = vm.find_var(key.as_sym()).unwrap();
     vm.stack.push(value);
 }
 

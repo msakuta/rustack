@@ -41,10 +41,7 @@ pub struct VmHandle {
 }
 
 fn puts(vm: &mut Vm) {
-    wasm_print(&format!(
-        "puts: {}\n",
-        vm.get_stack().last().unwrap().to_string()
-    ));
+    wasm_print(&format!("puts: {}\n", vm.pop().unwrap().to_string()));
 }
 
 #[wasm_bindgen]

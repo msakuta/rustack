@@ -88,7 +88,7 @@ function renderStack(stack, execStackJson) {
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
     ctx.fillStyle = "black";
-    ctx.fillText(`Stack[${stack.length}]: `, stackLeft, stackTop - 5);
+    ctx.fillText(`Operand stack[${stack.length}]: `, stackLeft, stackTop - 5);
 
     for(let i in stack) {
         const val = stack[i];
@@ -161,7 +161,7 @@ document.getElementById("input").value = `
 
 const samples = document.getElementById("samples");
 
-["function.txt", "fibonacci.txt", "if.txt", "recurse.txt"]
+["function.txt", "fibonacci.txt", "if.txt", "for.txt", "recurse.txt"]
     .forEach(fileName => {
         const link = document.createElement("a");
         link.href = "#";
