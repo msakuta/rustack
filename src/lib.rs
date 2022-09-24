@@ -469,6 +469,7 @@ mod test {
     fn parse(input: &str) -> Vec<Value> {
         let mut vm = Vm::new();
         vm.parse_batch(Cursor::new(input));
+        vm.eval_all();
         vm.get_stack().to_vec()
     }
 
@@ -483,8 +484,8 @@ mod test {
             vec![
                 Num(3),
                 Block(BlockSpan {
-                    block: vec![span(Num(3), (8, 9)), span(Num(4), (11, 12))],
-                    span: (6, 12),
+                    block: vec![span(Num(3), (8, 9)), span(Num(4), (10, 11))],
+                    span: (6, 13),
                 })
             ]
         );
