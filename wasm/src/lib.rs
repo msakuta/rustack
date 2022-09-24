@@ -67,10 +67,10 @@ pub fn start_step(src: String) -> VmHandle {
 
 #[wasm_bindgen]
 impl VmHandle {
-    pub fn step(&mut self) -> Result<(), JsValue> {
+    pub fn step(&mut self) -> Result<Vec<usize>, JsValue> {
         log(&format!("tokens: {:?}", self.tokens));
-        if self.vm.eval_step() {
-            Ok(())
+        if let Some(span) = self.vm.eval_step() {
+            Ok(vec![span.0, span.1])
         } else {
             return Err(JsValue::from_str("Input tokens exhausted"));
         }

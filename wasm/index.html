@@ -17,6 +17,11 @@
                 font-family:Monospace;
                 font-size:15px;
             }
+            .fixedCode {
+                font-family: Monospace;
+                text-align: left;
+                border: solid 1px black;
+            }
             .justify {
                 text-align: justify;
                 padding: 2em;
@@ -31,9 +36,12 @@
                 <div>
                     Samples: <span id="samples"></span>
                 </div>
-                <div class="code">
+                <div id="code" class="code">
                     <textarea  id="input" type="text" cols="80" rows="20" ></textarea>
                 </div>
+                <pre id="fixedCode" class="fixedCode" style="display: none">
+                    <div id="fixedInput" ></div>
+                </pre>
 
                 <div>
                     <button id="run">Run</button>

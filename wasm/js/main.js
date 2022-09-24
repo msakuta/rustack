@@ -22,10 +22,13 @@ function runCommon(process, clearOutput=true) {
 }
 
 let vm = null;
+let sourceText = "";
 
 document.getElementById("run").addEventListener("click", () => runCommon(entry));
 document.getElementById("startStep").addEventListener("click", () => runCommon((source) => {
     vm = start_step(source);
+    sourceText = source;
+    document.getElementById("fixedInput").innerHTML = source;
     updateButtonStates();
     return runStep();
 }));
@@ -40,9 +43,13 @@ function runStep() {
     if (vm) {
         try {
             const ret = vm.step();
+            const first = sourceText.substring(0, ret[0]);
+            const middle = sourceText.substring(ret[0], ret[1]);
+            const last = sourceText.substring(ret[1]);
+            document.getElementById("fixedInput").innerHTML = first + `<span style="color: red; background-color: cyan">${middle}</span>` + last;
             const stack = vm.get_stack();
             renderStack(stack, vm.get_vars());
-            return ret;
+            return "";
         }
         catch(e) {
             vm = null;
@@ -131,10 +138,14 @@ function renderRect(ctx, x, y, txt, color="rgb(127, 255, 127)") {
 
 function updateButtonStates() {
     if(vm){
+        document.getElementById("code").style.display = "none";
+        document.getElementById("fixedCode").style.display = "block";
         document.getElementById("step").removeAttribute("disabled");
         document.getElementById("haltStep").removeAttribute("disabled");
     }
     else{
+        document.getElementById("code").style.display = "block";
+        document.getElementById("fixedCode").style.display = "none";
         document.getElementById("step").setAttribute("disabled", "");
         document.getElementById("haltStep").setAttribute("disabled", "");
     }
@@ -148,12 +159,16 @@ const samples = document.getElementById("samples");
 
 ["function.txt", "fibonacci.txt", "if.txt", "recurse.txt"]
     .forEach(fileName => {
-    const link = document.createElement("a");
-    link.href = "#";
-    link.addEventListener("click", () => {
-        fetch("scripts/" + fileName)
-            .then(file => file.text())
-            .then(text => document.getElementById("input").value = text);
+        const link = document.createElement("a");
+        link.href = "#";
+        link.addEventListener("click", () => {
+            fetch("scripts/" + fileName)
+                .then(file => file.text())
+                .then(text => {
+                    document.getElementById("input").value = text
+                    vm = null;
+                    updateButtonStates();
+                });
     });
     link.innerHTML = fileName;
     samples.appendChild(link);
