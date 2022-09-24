@@ -23,30 +23,27 @@ pub fn init() {
 
 #[wasm_bindgen]
 pub fn entry(src: &str) -> Result<String, JsValue> {
-    let mut buf = std::cell::RefCell::new("".to_string());
     let stack = {
         let mut vm = Vm::new();
-        vm.add_fn(
-            "puts".to_string(),
-            Box::new(|vm: &mut Vm| {
-                *buf.borrow_mut() += &format!(
-                    "puts: {}\n",
-                    vm.get_stack().last().unwrap().to_string()
-                );
-            }),
-        );
+        vm.add_fn("puts".to_string(), Box::new(puts));
         vm.parse_batch(std::io::Cursor::new(src));
+        vm.eval_all();
         format!("stack: {:?}\n", vm.get_stack())
     };
-    let mut buf = buf.borrow().clone();
-    buf += &stack;
-    Ok(buf)
+    Ok(stack)
 }
 
 #[wasm_bindgen]
 pub struct VmHandle {
     vm: Vm<'static>,
     tokens: Vec<String>,
+}
+
+fn puts(vm: &mut Vm) {
+    wasm_print(&format!(
+        "puts: {}\n",
+        vm.get_stack().last().unwrap().to_string()
+    ));
 }
 
 #[wasm_bindgen]
@@ -62,24 +59,43 @@ pub fn start_step(src: String) -> VmHandle {
         })
         .collect();
     let mut vm = Vm::new();
+    vm.add_fn("puts".to_string(), Box::new(puts));
     vm.parse_batch(std::io::Cursor::new(src));
     VmHandle { vm, tokens }
 }
 
 #[wasm_bindgen]
 impl VmHandle {
-    pub fn step(&mut self) -> Result<String, JsValue> {
+    pub fn step(&mut self) -> Result<(), JsValue> {
         log(&format!("tokens: {:?}", self.tokens));
         if self.vm.eval_step() {
-            let result = format!(
-                "stack: {:?}\nvars: {:?}\nexec_stack: {:#?}",
-                self.vm.get_stack(),
-                self.vm.get_vars(),
-                self.vm.get_exec_stack()
-            );
-            Ok(result)
+            Ok(())
         } else {
             return Err(JsValue::from_str("Input tokens exhausted"));
         }
+    }
+
+    pub fn get_stack(&self) -> Result<Vec<JsValue>, JsValue> {
+        Ok(self
+            .vm
+            .get_stack()
+            .iter()
+            .map(|val| JsValue::from_str(&format!("{:?}", val)))
+            .collect())
+    }
+
+    pub fn get_vars(&self) -> Result<Vec<JsValue>, JsValue> {
+        Ok(self
+            .vm
+            .get_vars()
+            .iter()
+            .map(|(key, val)| {
+                [
+                    JsValue::from_str(key),
+                    JsValue::from_str(&format!("{:?}", val)),
+                ]
+            })
+            .flatten()
+            .collect())
     }
 }

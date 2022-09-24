@@ -191,6 +191,10 @@ impl<'f> Vm<'f> {
         }
     }
 
+    pub fn eval_all(&mut self) {
+        while self.eval_step() {}
+    }
+
     pub fn eval_step(&mut self) -> bool {
         let get_step = |frame: &mut ExecFrame<'f>| {
             if frame.ip < frame.block.len() {
