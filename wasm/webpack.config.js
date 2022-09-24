@@ -21,6 +21,7 @@ module.exports = {
     new CopyPlugin({
       patterns: [
         { from: "../scripts", to: "scripts" },
+        { from: "scripts", to: "scripts" },
       ]
     }),
 
