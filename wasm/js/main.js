@@ -54,29 +54,52 @@ function runStep() {
 }
 
 const stackTop = 50;
-const stackLeft = 30;
-const varLeft = stackLeft;
-const varTop = stackTop + 50;
+const stackLeft = 20;
+const frameTop = stackTop + 50;
+const frameLeft = 20;
+const frameMargin = 10;
+const varLeft = stackLeft + frameMargin;
 const varWidth = 100;
 const varHeight = 30;
 
-function renderStack(stack, vars) {
+function renderStack(stack, varStack) {
     const canvas = document.getElementById("stack");
     const ctx = canvas.getContext("2d");
     ctx.fillStyle = "rgb(255, 255, 255)";
     ctx.fillRect(0, 0, 500, 500);
+
+    ctx.fillStyle = "black";
+    ctx.fillText("Stack:", stackLeft, stackTop - 5);
+
     for(let i in stack) {
         const val = stack[i];
         renderRect(ctx, stackLeft + i * 100, stackTop, val);
     }
 
-    console.log(`vars: ${vars}`);
+    console.log(`vars: ${varStack}`);
 
-    for(let i = 0; i * 2 < vars.length; i++) {
-        const key = vars[i * 2];
-        const value = vars[i * 2 + 1];
-        renderRect(ctx, varLeft, varTop + varHeight * i, key);
-        renderRect(ctx, varLeft + varWidth, varTop + varHeight * i, value, "rgb(127, 255, 255)");
+    ctx.fillStyle = "black";
+    ctx.fillText("Execution stack:", frameLeft, frameTop - 5);
+
+    let offset = frameTop;
+    for(let n = varStack.length - 1; 0 <= n; n--) {
+        const vars = varStack[n];
+        const varTop = offset + frameMargin;
+
+        ctx.beginPath();
+        ctx.rect(frameLeft, offset, varWidth * 2 + frameMargin * 2, varHeight * vars.length / 2 + frameMargin * 2);
+        ctx.fillStyle = "rgb(191, 191, 191)";
+        ctx.fill();
+        ctx.strokeStyle = "black";
+        ctx.stroke();
+
+        for(let i = 0; i * 2 < vars.length; i++) {
+            const key = vars[i * 2];
+            const value = vars[i * 2 + 1];
+            renderRect(ctx, varLeft, varTop + varHeight * i, key);
+            renderRect(ctx, varLeft + varWidth, varTop + varHeight * i, value, "rgb(127, 255, 255)");
+        }
+        offset += vars.length / 2 * varHeight + frameMargin * 3;
     }
 }
 

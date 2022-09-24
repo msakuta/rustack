@@ -65,7 +65,7 @@ impl<'f> std::fmt::Debug for NativeOp<'f> {
 pub struct ExecFrame<'f> {
     block: Vec<Value<'f>>,
     ip: usize,
-    vars: HashMap<String, Value<'f>>,
+    pub vars: HashMap<String, Value<'f>>,
 }
 
 impl<'f> ExecFrame<'f> {
@@ -91,7 +91,7 @@ pub enum ExecState<'f> {
 }
 
 impl<'f> ExecState<'f> {
-    fn as_frame(&self) -> &ExecFrame<'f> {
+    pub fn as_frame(&self) -> &ExecFrame<'f> {
         match self {
             Self::Frame(frame) => frame,
             Self::IfCond { frame, .. } => frame,

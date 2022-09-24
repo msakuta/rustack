@@ -98,6 +98,7 @@ name = "wasm"
 version = "0.1.0"
 dependencies = [
  "console_error_panic_hook",
+ "js-sys",
  "rusty-stacker",
  "wasm-bindgen",
  "wasm-bindgen-test",

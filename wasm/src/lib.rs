@@ -84,18 +84,29 @@ impl VmHandle {
             .collect())
     }
 
-    pub fn get_vars(&self) -> Result<Vec<JsValue>, JsValue> {
-        Ok(self
+    pub fn get_vars(&self) -> Result<js_sys::Array, JsValue> {
+        let ret: Vec<Vec<_>> = self
             .vm
-            .get_vars()
+            .get_exec_stack()
             .iter()
-            .map(|(key, val)| {
-                [
-                    JsValue::from_str(key),
-                    JsValue::from_str(&format!("{:?}", val)),
-                ]
+            .map(|ex| {
+                ex.as_frame()
+                    .vars
+                    .iter()
+                    .map(|(key, val)| {
+                        [
+                            JsValue::from_str(key),
+                            JsValue::from_str(&format!("{:?}", val)),
+                        ]
+                    })
+                    .flatten()
+                    .collect()
             })
-            .flatten()
-            .collect())
+            .collect();
+        let jsret = ret
+            .iter()
+            .map(|a| a.iter().collect::<js_sys::Array>())
+            .collect();
+        Ok(jsret)
     }
 }
