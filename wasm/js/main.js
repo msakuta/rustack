@@ -48,7 +48,7 @@ function runStep() {
             const last = sourceText.substring(ret[1]);
             document.getElementById("fixedInput").innerHTML = first + `<span style="color: red; background-color: cyan">${middle}</span>` + last;
             const stack = vm.get_stack();
-            renderStack(stack, vm.get_vars());
+            renderStack(stack, vm.get_exec_stack());
             return "";
         }
         catch(e) {

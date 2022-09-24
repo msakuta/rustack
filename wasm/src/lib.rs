@@ -81,12 +81,12 @@ impl VmHandle {
             .vm
             .get_stack()
             .iter()
-            .map(|val| JsValue::from_str(&format!("{:?}", val)))
+            .map(|val| JsValue::from_str(&val.to_string()))
             .collect())
     }
 
     /// Return execution stack in JSON string
-    pub fn get_vars(&self) -> Result<String, JsValue> {
+    pub fn get_exec_stack(&self) -> Result<String, JsValue> {
         #[derive(Serialize)]
         struct ExecFrame {
             name: String,
@@ -106,7 +106,7 @@ impl VmHandle {
                     vars: frame
                         .vars
                         .iter()
-                        .map(|(key, val)| [key.clone(), format!("{:?}", val)])
+                        .map(|(key, val)| [key.clone(), val.to_string()])
                         .collect(),
                 }
             })

@@ -38,7 +38,9 @@ impl<'f> ToString for Value<'f> {
         match self {
             Self::Num(i) => i.to_string(),
             Self::Op(ref s) | Self::Sym(ref s) => s.clone(),
-            Self::Block(_) => "<Block>".to_string(),
+            Self::Block(block) => {
+                format!("<Block [{},{}]>", block.span.0, block.span.1)
+            }
             Self::Native(_) => "<Native>".to_string(),
         }
     }
