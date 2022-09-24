@@ -17,6 +17,25 @@ extern "C" {
     pub(crate) fn wasm_set_fill_style(s: &str);
 }
 
+fn puts(vm: &mut Vm) {
+    wasm_print(&format!("puts: {}\n", vm.pop().unwrap().to_string()));
+}
+
+fn rectangle(vm: &mut Vm) {
+    let y1 = vm.pop().unwrap().as_num();
+    let x1 = vm.pop().unwrap().as_num();
+    let y0 = vm.pop().unwrap().as_num();
+    let x0 = vm.pop().unwrap().as_num();
+    wasm_rectangle(x0, y0, x1, y1);
+}
+
+fn set_fill_style(vm: &mut Vm) {
+    let b = vm.pop().unwrap().as_num();
+    let g = vm.pop().unwrap().as_num();
+    let r = vm.pop().unwrap().as_num();
+    wasm_set_fill_style(&format!("rgb({r},{g},{b})"));
+}
+
 #[wasm_bindgen]
 pub fn init() {
     utils::set_panic_hook();
@@ -27,6 +46,8 @@ pub fn entry(src: &str) -> Result<String, JsValue> {
     let stack = {
         let mut vm = Vm::new();
         vm.add_fn("puts".to_string(), Box::new(puts));
+        vm.add_fn("rectangle".to_string(), Box::new(rectangle));
+        vm.add_fn("set_fill_style".to_string(), Box::new(set_fill_style));
         vm.parse_batch(std::io::Cursor::new(src));
         vm.eval_all();
         format!("stack: {:?}\n", vm.get_stack())
@@ -38,10 +59,6 @@ pub fn entry(src: &str) -> Result<String, JsValue> {
 pub struct VmHandle {
     vm: Vm<'static>,
     tokens: Vec<String>,
-}
-
-fn puts(vm: &mut Vm) {
-    wasm_print(&format!("puts: {}\n", vm.pop().unwrap().to_string()));
 }
 
 #[wasm_bindgen]
@@ -58,6 +75,8 @@ pub fn start_step(src: String) -> VmHandle {
         .collect();
     let mut vm = Vm::new();
     vm.add_fn("puts".to_string(), Box::new(puts));
+    vm.add_fn("rectangle".to_string(), Box::new(rectangle));
+    vm.add_fn("set_fill_style".to_string(), Box::new(set_fill_style));
     vm.parse_batch(std::io::Cursor::new(src));
     VmHandle { vm, tokens }
 }

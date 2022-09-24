@@ -10,21 +10,21 @@ pub enum Value<'f> {
 }
 
 impl<'f> Value<'f> {
-    fn as_num(&self) -> i32 {
+    pub fn as_num(&self) -> i32 {
         match self {
             Self::Num(val) => *val,
             _ => panic!("Value is not a number"),
         }
     }
 
-    fn to_block(self) -> BlockSpan<'f> {
+    pub fn to_block(self) -> BlockSpan<'f> {
         match self {
             Self::Block(val) => val,
             _ => panic!("Value is not a block"),
         }
     }
 
-    fn as_sym(&self) -> &str {
+    pub fn as_sym(&self) -> &str {
         if let Self::Sym(sym) = self {
             sym
         } else {

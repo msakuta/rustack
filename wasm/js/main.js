@@ -7,10 +7,10 @@ function runCommon(process, clearOutput=true) {
     const output = document.getElementById("output");
     if (clearOutput) {
         output.value = "";
+        const canvas = document.getElementById("canvas");
+        const canvasRect = canvas.getBoundingClientRect();
+        canvas.getContext("2d").clearRect(0, 0, canvasRect.width, canvasRect.height);
     }
-    const canvas = document.getElementById("canvas");
-    const canvasRect = canvas.getBoundingClientRect();
-    canvas.getContext("2d").clearRect(0, 0, canvasRect.width, canvasRect.height);
 
     const source = document.getElementById("input").value;
     try{
@@ -161,7 +161,7 @@ document.getElementById("input").value = `
 
 const samples = document.getElementById("samples");
 
-["function.txt", "fibonacci.txt", "if.txt", "for.txt", "recurse.txt"]
+["function.txt", "fibonacci.txt", "if.txt", "for.txt", "recurse.txt", "canvas.txt"]
     .forEach(fileName => {
         const link = document.createElement("a");
         link.href = "#";
