@@ -47,40 +47,39 @@ pub fn entry(src: &str) -> Result<String, JsValue> {
 pub struct VmHandle {
     vm: Vm<'static>,
     tokens: Vec<String>,
-    counter: usize,
 }
 
 #[wasm_bindgen]
 pub fn start_step(src: String) -> VmHandle {
-    VmHandle {
-        vm: Vm::new(),
-        tokens: src
-            .split([' ', '\t', '\r', '\n'])
-            .filter_map(|tok| {
-                if tok.is_empty() {
-                    None
-                } else {
-                    Some(tok.to_owned())
-                }
-            })
-            .collect(),
-        counter: 0,
-    }
+    let tokens = src
+        .split([' ', '\t', '\r', '\n'])
+        .filter_map(|tok| {
+            if tok.is_empty() {
+                None
+            } else {
+                Some(tok.to_owned())
+            }
+        })
+        .collect();
+    let mut vm = Vm::new();
+    vm.parse_batch(std::io::Cursor::new(src));
+    VmHandle { vm, tokens }
 }
 
 #[wasm_bindgen]
 impl VmHandle {
     pub fn step(&mut self) -> Result<String, JsValue> {
-        log(&format!("tokens[{}]: {:?}", self.counter, self.tokens));
-        if self.tokens.len() <= self.counter {
+        log(&format!("tokens: {:?}", self.tokens));
+        if self.vm.eval_step() {
+            let result = format!(
+                "stack: {:?}\nvars: {:?}\nexec_stack: {:#?}",
+                self.vm.get_stack(),
+                self.vm.get_vars(),
+                self.vm.get_exec_stack()
+            );
+            Ok(result)
+        } else {
             return Err(JsValue::from_str("Input tokens exhausted"));
         }
-        self.vm.parse_step(&mut std::iter::once(
-            self.tokens[self.counter].clone(),
-        ));
-        self.counter += 1;
-        let result =
-            format!("step {}: {:?}", self.counter, self.vm.get_stack());
-        Ok(result)
     }
 }
