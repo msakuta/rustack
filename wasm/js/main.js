@@ -140,12 +140,16 @@ function updateButtonStates() {
     if(vm){
         document.getElementById("code").style.display = "none";
         document.getElementById("fixedCode").style.display = "block";
+        document.getElementById("run").setAttribute("disabled", "");
+        document.getElementById("startStep").setAttribute("disabled", "");
         document.getElementById("step").removeAttribute("disabled");
         document.getElementById("haltStep").removeAttribute("disabled");
     }
     else{
         document.getElementById("code").style.display = "block";
         document.getElementById("fixedCode").style.display = "none";
+        document.getElementById("run").removeAttribute("disabled");
+        document.getElementById("startStep").removeAttribute("disabled");
         document.getElementById("step").setAttribute("disabled", "");
         document.getElementById("haltStep").setAttribute("disabled", "");
     }
