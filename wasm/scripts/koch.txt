@@ -1,18 +1,3 @@
-
-/for {
- /proc exch def
- /end exch def
- /start exch def
-
- { start end < }
- { start proc
-   start 1 + end /proc load for }
- { }
- if
-} def
-
-
-
 /koch {
     /level exch def
     /scale exch def
