@@ -11,6 +11,16 @@ https://msakuta.github.io/rusty-stacker/
 This is a sister project of [rusty-parser](https://github.com/msakuta/rusty-parser),
 a custom programming language compiler / interpreter.
 
+It has integrated step execution feature that visualize the interpreter state at each execution step.
+
+![screenshot-step-execution](screenshots/wasm-screenshot.png)
+
+The WebmAssembly deployment has API access to canvas rendering similar to PostScript graphics, so you can write
+a program that can render something like below.
+This example is a rendering of [Koch curve](https://en.wikipedia.org/wiki/Koch_snowflake) which uses recursive calls. You can find the source in [source](wasm/scripts/koch.txt).
+
+![koch](screenshots/koch.png)
+
 This rusty-stacker is stack based virtual machine similar to JVM,
 but it is particularly following the design of PostScript runtime.
 It uses reverse-polish notation for all operations and functions.
