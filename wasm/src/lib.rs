@@ -1,5 +1,7 @@
 mod utils;
+mod wasm_imports;
 
+use crate::wasm_imports::register_wasm_fn;
 use rusty_stacker::Vm;
 use serde::Serialize;
 use wasm_bindgen::prelude::*;
@@ -8,32 +10,6 @@ use wasm_bindgen::prelude::*;
 extern "C" {
     #[wasm_bindgen(js_namespace = console)]
     pub(crate) fn log(s: &str);
-}
-
-#[wasm_bindgen(module = "/wasm_api.js")]
-extern "C" {
-    pub(crate) fn wasm_print(s: &str);
-    pub(crate) fn wasm_rectangle(x0: i32, y0: i32, x1: i32, y1: i32);
-    pub(crate) fn wasm_set_fill_style(s: &str);
-}
-
-fn puts(vm: &mut Vm) {
-    wasm_print(&format!("puts: {}\n", vm.pop().unwrap().to_string()));
-}
-
-fn rectangle(vm: &mut Vm) {
-    let y1 = vm.pop().unwrap().as_num();
-    let x1 = vm.pop().unwrap().as_num();
-    let y0 = vm.pop().unwrap().as_num();
-    let x0 = vm.pop().unwrap().as_num();
-    wasm_rectangle(x0, y0, x1, y1);
-}
-
-fn set_fill_style(vm: &mut Vm) {
-    let b = vm.pop().unwrap().as_num();
-    let g = vm.pop().unwrap().as_num();
-    let r = vm.pop().unwrap().as_num();
-    wasm_set_fill_style(&format!("rgb({r},{g},{b})"));
 }
 
 #[wasm_bindgen]
@@ -45,9 +21,7 @@ pub fn init() {
 pub fn entry(src: &str) -> Result<String, JsValue> {
     let stack = {
         let mut vm = Vm::new();
-        vm.add_fn("puts".to_string(), Box::new(puts));
-        vm.add_fn("rectangle".to_string(), Box::new(rectangle));
-        vm.add_fn("set_fill_style".to_string(), Box::new(set_fill_style));
+        register_wasm_fn(&mut vm);
         vm.parse_batch(std::io::Cursor::new(src));
         vm.eval_all();
         format!("stack: {:?}\n", vm.get_stack())
@@ -74,9 +48,7 @@ pub fn start_step(src: String) -> VmHandle {
         })
         .collect();
     let mut vm = Vm::new();
-    vm.add_fn("puts".to_string(), Box::new(puts));
-    vm.add_fn("rectangle".to_string(), Box::new(rectangle));
-    vm.add_fn("set_fill_style".to_string(), Box::new(set_fill_style));
+    register_wasm_fn(&mut vm);
     vm.parse_batch(std::io::Cursor::new(src));
     VmHandle { vm, tokens }
 }

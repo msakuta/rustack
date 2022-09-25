@@ -9,7 +9,9 @@ function runCommon(process, clearOutput=true) {
         output.value = "";
         const canvas = document.getElementById("canvas");
         const canvasRect = canvas.getBoundingClientRect();
-        canvas.getContext("2d").clearRect(0, 0, canvasRect.width, canvasRect.height);
+        const ctx = canvas.getContext("2d");
+        ctx.clearRect(0, 0, canvasRect.width, canvasRect.height);
+        ctx.reset();
     }
 
     const source = document.getElementById("input").value;
@@ -38,6 +40,13 @@ document.getElementById("haltStep").addEventListener("click", () => runCommon((s
     updateButtonStates();
     return "Step execution halted";
 }));
+document.getElementById("clearCanvas").addEventListener("click", () => {
+    const canvas = document.getElementById("canvas");
+    const ctx = canvas.getContext("2d");
+    ctx.reset();
+    ctx.fillStyle = "rgb(255, 255, 255)";
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+});
 
 function runStep() {
     if (vm) {
@@ -161,7 +170,7 @@ document.getElementById("input").value = `
 
 const samples = document.getElementById("samples");
 
-["function.txt", "fibonacci.txt", "if.txt", "for.txt", "recurse.txt", "canvas.txt"]
+["function.txt", "fibonacci.txt", "if.txt", "for.txt", "recurse.txt", "canvas.txt", "koch.txt"]
     .forEach(fileName => {
         const link = document.createElement("a");
         link.href = "#";

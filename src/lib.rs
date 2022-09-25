@@ -1,8 +1,9 @@
 use std::{collections::HashMap, io::BufRead, rc::Rc};
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum Value<'f> {
-    Num(i32),
+    Int(i32),
+    Num(f32),
     Op(String),
     Sym(String),
     Block(BlockSpan<'f>),
@@ -10,8 +11,17 @@ pub enum Value<'f> {
 }
 
 impl<'f> Value<'f> {
-    pub fn as_num(&self) -> i32 {
+    pub fn as_int(&self) -> i32 {
         match self {
+            Self::Int(val) => *val,
+            Self::Num(val) => *val as i32,
+            _ => panic!("Value is not a number"),
+        }
+    }
+
+    pub fn as_num(&self) -> f32 {
+        match self {
+            Self::Int(val) => *val as f32,
             Self::Num(val) => *val,
             _ => panic!("Value is not a number"),
         }
@@ -36,6 +46,7 @@ impl<'f> Value<'f> {
 impl<'f> ToString for Value<'f> {
     fn to_string(&self) -> String {
         match self {
+            Self::Int(i) => i.to_string(),
             Self::Num(i) => i.to_string(),
             Self::Op(ref s) | Self::Sym(ref s) => s.clone(),
             Self::Block(block) => {
@@ -63,7 +74,7 @@ impl<'f> std::fmt::Debug for NativeOp<'f> {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct ValueSpan<'f> {
     value: Value<'f>,
     span: (usize, usize),
@@ -118,7 +129,7 @@ impl<'f> ExecState<'f> {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct BlockSpan<'f> {
     block: Vec<ValueSpan<'f>>,
     span: (usize, usize),
@@ -142,11 +153,11 @@ pub struct Vm<'f> {
 
 impl<'f> Vm<'f> {
     pub fn new() -> Self {
-        let functions: [(&str, fn(&mut Vm)); 13] = [
+        let functions: [(&str, fn(&mut Vm)); 16] = [
             ("+", add),
             ("-", sub),
             ("*", mul),
-            ("/", div),
+            ("div", div),
             ("<", lt),
             ("if", op_if),
             ("def", op_def),
@@ -156,6 +167,9 @@ impl<'f> Vm<'f> {
             ("exch", exch),
             ("index", index),
             ("load", load),
+            ("sin", sin),
+            ("cos", cos),
+            ("pi", |vm| vm.stack.push(Value::Num(std::f32::consts::PI))),
         ];
         Self {
             stack: vec![],
@@ -278,7 +292,7 @@ impl<'f> Vm<'f> {
                         Some(value_span.span)
                     } else {
                         let cond = self.stack.pop().unwrap();
-                        if cond.as_num() != 0 {
+                        if cond.as_int() != 0 {
                             let block = if let ExecState::IfCond {
                                 true_branch,
                                 ..
@@ -354,6 +368,8 @@ fn parse_word(word: &str, vm: &mut Vm, offset: usize) {
         }
     } else if let Some(top_block) = vm.blocks.last_mut() {
         let code = if let Ok(num) = word.parse::<i32>() {
+            Value::Int(num)
+        } else if let Ok(num) = word.parse::<f32>() {
             Value::Num(num)
         } else if word.starts_with("/") {
             Value::Sym(word[1..].to_string())
@@ -389,9 +405,15 @@ fn eval<'f>(code: &Value<'f>, vm: &mut Vm<'f>) {
 macro_rules! impl_op {
     {$name:ident, $op:tt} => {
         fn $name(vm: &mut Vm) {
-            let rhs = vm.stack.pop().unwrap().as_num();
-            let lhs = vm.stack.pop().unwrap().as_num();
-            vm.stack.push(Value::Num((lhs $op rhs) as i32));
+            let rhs = vm.stack.pop().unwrap();
+            let lhs = vm.stack.pop().unwrap();
+            vm.stack.push(match (lhs, rhs) {
+                (Value::Int(lhs), Value::Int(rhs)) => Value::Int((lhs $op rhs) as i32),
+                (Value::Num(lhs), Value::Int(rhs)) => Value::Num(lhs as f32 $op rhs as f32),
+                (Value::Int(lhs), Value::Num(rhs)) => Value::Num(lhs as f32 $op rhs as f32),
+                (Value::Num(lhs), Value::Num(rhs)) => Value::Num(lhs $op rhs),
+                _ => panic!("Binary arithmetic between incompatible types!"),
+            });
         }
     }
 }
@@ -400,7 +422,22 @@ impl_op!(add, +);
 impl_op!(sub, -);
 impl_op!(mul, *);
 impl_op!(div, /);
-impl_op!(lt, <);
+
+fn lt(vm: &mut Vm) {
+    let rhs = vm.stack.pop().unwrap().as_num();
+    let lhs = vm.stack.pop().unwrap().as_num();
+    vm.stack.push(Value::Int((lhs < rhs) as i32));
+}
+
+fn sin(vm: &mut Vm) {
+    let o = vm.pop().unwrap().as_num();
+    vm.stack.push(Value::Num(o.sin()));
+}
+
+fn cos(vm: &mut Vm) {
+    let o = vm.pop().unwrap().as_num();
+    vm.stack.push(Value::Num(o.cos()));
+}
 
 fn op_if(vm: &mut Vm) {
     let false_branch = vm.stack.pop().unwrap().to_block();
@@ -482,9 +519,9 @@ mod test {
         assert_eq!(
             parse("1 2 + { 3 4 }"),
             vec![
-                Num(3),
+                Int(3),
                 Block(BlockSpan {
-                    block: vec![span(Num(3), (8, 9)), span(Num(4), (10, 11))],
+                    block: vec![span(Int(3), (8, 9)), span(Int(4), (10, 11))],
                     span: (6, 13),
                 })
             ]
@@ -493,24 +530,24 @@ mod test {
 
     #[test]
     fn test_if_false() {
-        assert_eq!(parse("{ 1 -1 + } { 100 } { -100 } if"), vec![Num(-100)]);
+        assert_eq!(parse("{ 1 -1 + } { 100 } { -100 } if"), vec![Int(-100)]);
     }
 
     #[test]
     fn test_if_true() {
-        assert_eq!(parse("{ 1 1 + } { 100 } { -100 } if"), vec![Num(100)]);
+        assert_eq!(parse("{ 1 1 + } { 100 } { -100 } if"), vec![Int(100)]);
     }
 
     #[test]
     fn test_var() {
-        assert_eq!(parse("/x 10 def /y 20 def x y *"), vec![Num(200)]);
+        assert_eq!(parse("/x 10 def /y 20 def x y *"), vec![Int(200)]);
     }
 
     #[test]
     fn test_var_if() {
         assert_eq!(
             parse("/x 10 def /y 20 def { x y < } { x } { y } if"),
-            vec![Num(10)]
+            vec![Int(10)]
         );
     }
 
@@ -528,7 +565,7 @@ mod test {
 if
 "#
             ),
-            vec![Num(10)]
+            vec![Int(10)]
         );
     }
 
@@ -540,7 +577,7 @@ if
 /double { 2 * } def
 10 double"#
             ),
-            vec![Num(20)]
+            vec![Int(20)]
         );
     }
 }

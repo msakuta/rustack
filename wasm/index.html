@@ -72,7 +72,8 @@
             <span class="code">rusty-stacker</span> has following value types.
             It is dynamically typed language, so each stack element can have any type at any time.
             <ul>
-                <li>Num (i32)</li>
+                <li>Int (i32)</li>
+                <li>Num (f32)</li>
                 <li>Symbol</li>
                 <li>Block</li>
                 <li>Native</li>
@@ -95,6 +96,20 @@
             <li>"exch" - exchange the topmost 2 values</li>
             <li>"index" - pop a value from the stack, and extract a value at stack index specified by the popped value</li>
             <li>"load" - pop a value from the stack, get a value from dictionary stack with the popped value as the key and push it without executing it</li>
+            </ul>
+
+            <h2>Canvas rendering functions</h2>
+            <ul>
+                <li>"rectangle" - Pop (x, y, width, height) values from the stack and render a filled rectangle in the canvas.</li>
+                <li>"set_fill_style" - Pop (r, g, b) values from the stack and sets the color of following fill commands.</li>
+                <li>"set_stroke_style" - Pop (r, g, b) values from the stack and sets the color of following stroke commands.</li>
+                <li>"move_to" - Pop (x, y) values from the stack and call <a href="https://developer.mozilla.org/en-US/docs/Web/API/CanvasRenderingContext2D/moveTo">CanvasRenderingContext2D.moveTo</a></li>
+                <li>"line_to" - Pop (x, y) values from the stack and call <a href="https://developer.mozilla.org/en-US/docs/Web/API/CanvasRenderingContext2D/lineTo">CanvasRenderingContext2D.lineTo</a></li>
+                <li>"stroke" - Call <a href="https://developer.mozilla.org/en-US/docs/Web/API/CanvasRenderingContext2D/stroke">CanvasRenderingContext2D.stroke</a></li>
+                <li>"rotate" - Pop angle value from the stack and call <a href="https://developer.mozilla.org/en-US/docs/Web/API/CanvasRenderingContext2D/rotate">CanvasRenderingContext2D.rotate</a></li>
+                <li>"translate" - Pop (x, y) values from the stack and call <a href="https://developer.mozilla.org/en-US/docs/Web/API/CanvasRenderingContext2D/translate">CanvasRenderingContext2D.translate</a></li>
+                <li>"save" - Call <a href="https://developer.mozilla.org/en-US/docs/Web/API/CanvasRenderingContext2D/save">CanvasRenderingContext2D.save</a></li>
+                <li>"restore" - Call <a href="https://developer.mozilla.org/en-US/docs/Web/API/CanvasRenderingContext2D/restore">CanvasRenderingContext2D.restore</a></li>
             </ul>
         </div>
 
