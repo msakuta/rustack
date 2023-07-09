@@ -1,4 +1,4 @@
-use rusty_stacker::Vm;
+use rustack::Vm;
 use wasm_bindgen::prelude::*;
 
 pub(super) fn register_wasm_fn(vm: &mut Vm) {

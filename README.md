@@ -1,9 +1,9 @@
-# Rusty-stacker
+# Rustack
 
 A very simple stack based language interpreter in Rust
 
 Try it now on your browser!
-https://msakuta.github.io/rusty-stacker/
+https://msakuta.github.io/rustack/
 
 
 ## Overview
@@ -21,7 +21,7 @@ This example is a rendering of [Koch curve](https://en.wikipedia.org/wiki/Koch_s
 
 ![koch](screenshots/koch.png)
 
-This rusty-stacker is stack based virtual machine similar to JVM,
+This rustack is stack based virtual machine similar to JVM,
 but it is particularly following the design of PostScript runtime.
 It uses reverse-polish notation for all operations and functions.
 

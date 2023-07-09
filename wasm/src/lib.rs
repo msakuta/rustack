@@ -2,7 +2,7 @@ mod utils;
 mod wasm_imports;
 
 use crate::wasm_imports::register_wasm_fn;
-use rusty_stacker::Vm;
+use rustack::Vm;
 use serde::Serialize;
 use wasm_bindgen::prelude::*;
 

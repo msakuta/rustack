@@ -73,7 +73,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "rusty-stacker"
+name = "rustack"
 version = "0.1.0"
 
 [[package]]
@@ -142,7 +142,7 @@ version = "0.1.0"
 dependencies = [
  "console_error_panic_hook",
  "js-sys",
- "rusty-stacker",
+ "rustack",
  "serde",
  "serde_json",
  "wasm-bindgen",
