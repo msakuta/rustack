@@ -9,7 +9,7 @@
     { acc }
     {
         n 1 -
-        acc n 1 - *
+        acc n *
         factorial_int
     }
     if
