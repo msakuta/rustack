@@ -265,11 +265,14 @@ impl<'f> Vm<'f> {
     }
   }
 
-  pub fn eval_all(&mut self) {
-    while self.eval_step().is_some() {}
+  pub fn eval_all(&mut self) -> Result<(), String> {
+    while self.eval_step().map(|r| r.is_some())? {}
+    Ok(())
   }
 
-  pub fn eval_step(&mut self) -> Option<(usize, usize)> {
+  pub fn eval_step(
+    &mut self,
+  ) -> Result<Option<(usize, usize)>, String> {
     let get_step = |frame: &mut ExecFrame<'f>| {
       if frame.ip < frame.block.block.len() {
         let value_span = frame.block.block[frame.ip].clone();
@@ -281,12 +284,14 @@ impl<'f> Vm<'f> {
     };
 
     if let Some(state) = self.exec_stack.last_mut() {
-      match state {
+      Ok(match state {
         ExecState::Frame(frame)
         | ExecState::IfTrue(frame)
         | ExecState::IfFalse(frame) => {
           if let Some(value_span) = get_step(frame) {
-            eval(&value_span.value, self);
+            eval(&value_span.value, self).map_err(|e| {
+              format!("{e}:\n{}", self.stack_trace())
+            })?;
             Some(value_span.span)
           } else {
             let frame = self.exec_stack.pop();
@@ -299,7 +304,9 @@ impl<'f> Vm<'f> {
         }
         ExecState::IfCond { frame, .. } => {
           if let Some(value_span) = get_step(frame) {
-            eval(&value_span.value, self);
+            eval(&value_span.value, self).map_err(|e| {
+              format!("{e}:\n{}", self.stack_trace())
+            })?;
             Some(value_span.span)
           } else {
             let cond = self.stack.pop().unwrap();
@@ -344,10 +351,44 @@ impl<'f> Vm<'f> {
             }
           }
         }
-      }
+      })
     } else {
-      None
+      Ok(None)
     }
+  }
+
+  fn stack_trace(&self) -> String {
+    self
+      .exec_stack
+      .iter()
+      .rev()
+      .enumerate()
+      .map(|(i, state)| match state {
+        ExecState::Frame(frame)
+        | ExecState::IfTrue(frame)
+        | ExecState::IfFalse(frame)
+        | ExecState::IfCond { frame, .. } => {
+          let local_vars = frame.vars.iter().map(|(k, v)| format!("{k}: {}", v.to_string())).fold("".to_string(), |acc, cur| {
+            if acc.is_empty() {
+              cur
+            } else {
+              acc + ", " + &cur
+            }
+          });
+          let stack_vars = frame
+            .block
+            .block
+            .iter()
+            .map(|value| value.value.to_string())
+            .fold("".to_string(), |acc, cur| {
+              acc + " " + &cur
+            });
+          format!("    frame[{i}]: locals: {{{local_vars}}}, stack: {stack_vars}")
+        }
+      })
+      .fold("  Stack trace:\n".to_string(), |acc, cur| {
+        acc + &cur + "\n"
+      })
   }
 }
 
@@ -397,11 +438,14 @@ fn parse_word(word: &str, vm: &mut Vm, offset: usize) {
   }
 }
 
-fn eval<'f>(code: &Value<'f>, vm: &mut Vm<'f>) {
+fn eval<'f>(
+  code: &Value<'f>,
+  vm: &mut Vm<'f>,
+) -> Result<(), String> {
   if let Value::Op(ref op) = code {
-    let val = vm
-      .find_var(op)
-      .expect(&format!("{op:?} is not a defined operation"));
+    let val = vm.find_var(op).ok_or_else(|| {
+      format!("{op:?} is not a defined operation")
+    })?;
     match val {
       Value::Block(block) => {
         vm.exec_stack.push(ExecState::Frame(ExecFrame::new(
@@ -415,6 +459,7 @@ fn eval<'f>(code: &Value<'f>, vm: &mut Vm<'f>) {
   } else {
     vm.stack.push(code.clone());
   }
+  Ok(())
 }
 
 macro_rules! impl_op {

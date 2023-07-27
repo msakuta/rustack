@@ -14,7 +14,10 @@ pub fn main() -> Result<(), Box<dyn Error>> {
   let src = std::fs::read_to_string(file_name)?;
   let mut vm = Vm::new();
   vm.parse_batch(std::io::Cursor::new(src));
-  vm.eval_all();
+  if let Err(e) = vm.eval_all() {
+    eprintln!("ERROR: {e}");
+    return Ok(());
+  };
   format!("stack: {:?}\n", vm.get_stack());
   Ok(())
 }
