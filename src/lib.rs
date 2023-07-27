@@ -112,6 +112,11 @@ pub enum ExecState<'f> {
   },
   IfTrue(ExecFrame<'f>),
   IfFalse(ExecFrame<'f>),
+  For {
+    frame: ExecFrame<'f>,
+    i: i32,
+    end: i32,
+  },
 }
 
 impl<'f> ExecState<'f> {
@@ -120,6 +125,7 @@ impl<'f> ExecState<'f> {
       Self::Frame(frame) => frame,
       Self::IfCond { frame, .. } => frame,
       Self::IfTrue(frame) | Self::IfFalse(frame) => frame,
+      Self::For { frame, .. } => frame,
     }
   }
 
@@ -128,6 +134,7 @@ impl<'f> ExecState<'f> {
       Self::Frame(frame) => frame,
       Self::IfCond { frame, .. } => frame,
       Self::IfTrue(frame) | Self::IfFalse(frame) => frame,
+      Self::For { frame, .. } => frame,
     }
   }
 }
@@ -156,13 +163,14 @@ pub struct Vm<'f> {
 
 impl<'f> Vm<'f> {
   pub fn new() -> Self {
-    let functions: [(&str, fn(&mut Vm)); 16] = [
+    let functions: &[(&str, fn(&mut Vm))] = &[
       ("+", add),
       ("-", sub),
       ("*", mul),
       ("div", div),
       ("<", lt),
       ("if", op_if),
+      ("for", op_for),
       ("def", op_def),
       ("puts", puts),
       ("pop", pop),
@@ -182,7 +190,7 @@ impl<'f> Vm<'f> {
         .into_iter()
         .map(|(name, fun)| {
           (
-            name.to_owned(),
+            name.to_string(),
             Value::Native(NativeOp(Rc::new(Box::new(fun)))),
           )
         })
@@ -220,11 +228,7 @@ impl<'f> Vm<'f> {
       .iter()
       .rev()
       .find_map(|state| {
-        if let ExecState::Frame(frame) = state {
-          frame.vars.get(name).cloned()
-        } else {
-          None
-        }
+        state.as_frame().vars.get(name).cloned()
       })
       .or_else(|| self.globals.get(name).cloned())
   }
@@ -270,6 +274,10 @@ impl<'f> Vm<'f> {
     Ok(())
   }
 
+  fn map_err(&self, e: String) -> String {
+    format!("{e}:\n{}", self.stack_trace())
+  }
+
   pub fn eval_step(
     &mut self,
   ) -> Result<Option<(usize, usize)>, String> {
@@ -289,9 +297,8 @@ impl<'f> Vm<'f> {
         | ExecState::IfTrue(frame)
         | ExecState::IfFalse(frame) => {
           if let Some(value_span) = get_step(frame) {
-            eval(&value_span.value, self).map_err(|e| {
-              format!("{e}:\n{}", self.stack_trace())
-            })?;
+            eval(&value_span.value, self)
+              .map_err(|e| self.map_err(e))?;
             Some(value_span.span)
           } else {
             let frame = self.exec_stack.pop();
@@ -304,9 +311,8 @@ impl<'f> Vm<'f> {
         }
         ExecState::IfCond { frame, .. } => {
           if let Some(value_span) = get_step(frame) {
-            eval(&value_span.value, self).map_err(|e| {
-              format!("{e}:\n{}", self.stack_trace())
-            })?;
+            eval(&value_span.value, self)
+              .map_err(|e| self.map_err(e))?;
             Some(value_span.span)
           } else {
             let cond = self.stack.pop().unwrap();
@@ -351,6 +357,28 @@ impl<'f> Vm<'f> {
             }
           }
         }
+        ExecState::For { frame, i, end } => loop {
+          if frame.ip == 0 {
+            self.stack.push(Value::Int(*i));
+          }
+          if let Some(value_span) = get_step(frame) {
+            eval(&value_span.value, self)
+              .map_err(|e| self.map_err(e))?;
+            break Some(value_span.span);
+          } else {
+            *i += 1;
+            if *i < *end {
+              frame.ip = 0;
+              continue;
+            }
+          }
+          let frame = self.exec_stack.pop();
+          break Some(
+            frame
+              .map(|frame| frame.as_frame().block.span)
+              .unwrap_or((0, 0)),
+          );
+        },
       })
     } else {
       Ok(None)
@@ -367,7 +395,8 @@ impl<'f> Vm<'f> {
         ExecState::Frame(frame)
         | ExecState::IfTrue(frame)
         | ExecState::IfFalse(frame)
-        | ExecState::IfCond { frame, .. } => {
+        | ExecState::IfCond { frame, .. }
+        | ExecState::For { frame, .. } => {
           let local_vars = frame.vars.iter().map(|(k, v)| format!("{k}: {}", v.to_string())).fold("".to_string(), |acc, cur| {
             if acc.is_empty() {
               cur
@@ -511,6 +540,18 @@ fn op_if(vm: &mut Vm) {
   });
 }
 
+fn op_for(vm: &mut Vm) {
+  let f = vm.stack.pop().unwrap().to_block();
+  let end = vm.stack.pop().unwrap().as_int();
+  let start = vm.stack.pop().unwrap().as_int();
+
+  vm.exec_stack.push(ExecState::For {
+    frame: ExecFrame::new("<For>".to_owned(), f),
+    i: start,
+    end,
+  });
+}
+
 fn op_def(vm: &mut Vm) {
   let value = vm.stack.pop().unwrap();
   eval(&value, vm);
@@ -518,7 +559,9 @@ fn op_def(vm: &mut Vm) {
   let sym = vm.stack.pop().unwrap().as_sym().to_string();
 
   vm.exec_stack
-    .last_mut()
+    .iter_mut()
+    .rev()
+    .find(|frame| matches!(frame, ExecState::Frame(_)))
     .unwrap()
     .as_frame_mut()
     .vars

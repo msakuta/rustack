@@ -23,7 +23,7 @@ pub fn entry(src: &str) -> Result<String, JsValue> {
     let mut vm = Vm::new();
     register_wasm_fn(&mut vm);
     vm.parse_batch(std::io::Cursor::new(src));
-    vm.eval_all();
+    vm.eval_all()?;
     format!("stack: {:?}\n", vm.get_stack())
   };
   Ok(stack)
@@ -57,7 +57,7 @@ pub fn start_step(src: String) -> VmHandle {
 impl VmHandle {
   pub fn step(&mut self) -> Result<Vec<usize>, JsValue> {
     log(&format!("tokens: {:?}", self.tokens));
-    if let Some(span) = self.vm.eval_step() {
+    if let Some(span) = self.vm.eval_step()? {
       Ok(vec![span.0, span.1])
     } else {
       return Err(JsValue::from_str("Input tokens exhausted"));

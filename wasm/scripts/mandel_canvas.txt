@@ -52,7 +52,7 @@
         /xsteps xmax xmin - xstep div def
         0 xsteps {
             /ix exch def
-            /x ix xmax xmin - * xstep * xmin +
+            /x ix xmax xmin - * xstep * xmin + def
             x y mandelconverge ix iy printdensity
         } for
     } for
@@ -70,18 +70,6 @@
     imagstart imagmag + 80 *
     imagmag
     mandelhelp
-} def
-
-/for {
- /proc exch def
- /end exch def
- /start exch def
-
- { start end < }
- { start proc
-   start 1 + end /proc load for }
- { }
- if
 } def
 
 -2.0 -2.0 0.025 0.025 mandel
