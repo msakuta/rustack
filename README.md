@@ -8,6 +8,9 @@ https://msakuta.github.io/rustack/
 
 ## Overview
 
+This repo is the implementation of the example script used in my book:
+[Rustで作るプログラミング言語](https://www.amazon.co.jp/dp/4297141922) (Japanese).
+
 This is a sister project of [rusty-parser](https://github.com/msakuta/rusty-parser),
 a custom programming language compiler / interpreter.
 
