@@ -554,7 +554,9 @@ fn op_for(vm: &mut Vm) {
 
 fn op_def(vm: &mut Vm) {
   let value = vm.stack.pop().unwrap();
-  eval(&value, vm);
+  if let Err(e) = eval(&value, vm) {
+    println!("eval returned error: {e:?}");
+  }
   let value = vm.stack.pop().unwrap();
   let sym = vm.stack.pop().unwrap().as_sym().to_string();
 
