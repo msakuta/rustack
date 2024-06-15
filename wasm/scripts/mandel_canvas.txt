@@ -5,7 +5,7 @@
     /d exch def
 
     0 d 0 set_fill_style
-    x 5 * y 5 * 5 5 rectangle
+    x 4 * y 4 * 4 4 rectangle
 } def
 
 /mandelconverger {
@@ -20,56 +20,41 @@
         { }
         {
             /iters exch def
-            /real real real * imag imag * - creal - def
+            /real_next real real * imag imag * - creal + def
             /imag 2 real * imag * cimag + def
+            /real real_next def
         } if
     } for
     iters
 } def
 
 /mandelconverge {
-    /real exch def
     /imag exch def
+    /real exch def
 
     real imag 0 real imag mandelconverger
 } def
 
-/mandelhelp {
+/mandel {
+    /ysteps exch def
+    /xsteps exch def
     /ystep exch def
-    /ymax exch def
-    /ymin exch def
-
     /xstep exch def
-    /xmax exch def
+    /ymin exch def
     /xmin exch def
 
-    /steps ymax ymin - ystep div def
-    xstep puts steps puts ystep puts
+    xstep puts xsteps puts ysteps puts ystep puts
 
-    0 steps {
+    0 ysteps {
         /iy exch def
-        /y iy ymax ymin - * ystep * ymin + def
-        /xsteps xmax xmin - xstep div def
+        /y iy ystep * ymin + def
         0 xsteps {
             /ix exch def
-            /x ix xmax xmin - * xstep * xmin + def
-            x y mandelconverge ix iy printdensity
+            /x ix xstep * xmin + def
+            x y mandelconverge
+            ix iy printdensity
         } for
     } for
 } def
 
-/mandel {
-    /realstart exch def
-    /imagstart exch def
-    /realmag exch def
-    /imagmag exch def
-
-    realstart realstart realmag + 80 *
-    realmag
-    imagstart
-    imagstart imagmag + 80 *
-    imagmag
-    mandelhelp
-} def
-
--2.0 -2.0 0.025 0.025 mandel
+-2.0 -2.0 0.05 0.05 80 80 mandel
