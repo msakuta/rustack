@@ -34,6 +34,13 @@ document.getElementById("startStep").addEventListener("click", () => runCommon((
     updateButtonStates();
     return runStep();
 }));
+document.getElementById("startAutoStep").addEventListener("click", () => runCommon((source) => {
+    vm = start_step(source);
+    sourceText = source;
+    document.getElementById("fixedInput").innerHTML = source;
+    updateButtonStates();
+    runAutoStep();
+}));
 document.getElementById("step").addEventListener("click", () => runCommon(runStep, false));
 document.getElementById("haltStep").addEventListener("click", () => runCommon((source) => {
     vm = null;
@@ -67,6 +74,13 @@ function runStep() {
         }
     }
     throw "Start step execution first";
+}
+
+function runAutoStep() {
+    if (vm) {
+        runStep();
+        requestAnimationFrame(runAutoStep, 50);
+    }
 }
 
 const stackTop = 50;
