@@ -27,6 +27,10 @@ impl<'f> Value<'f> {
     }
   }
 
+  pub fn as_bool(&self) -> bool {
+    self.as_int() != 0
+  }
+
   pub fn to_block(self) -> BlockSpan<'f> {
     match self {
       Self::Block(val) => val,
@@ -169,6 +173,8 @@ impl<'f> Vm<'f> {
       ("*", mul),
       ("div", div),
       ("<", lt),
+      ("or", op_or),
+      ("and", op_and),
       ("if", op_if),
       ("for", op_for),
       ("def", op_def),
@@ -516,6 +522,18 @@ fn lt(vm: &mut Vm) {
   let rhs = vm.stack.pop().unwrap().as_num();
   let lhs = vm.stack.pop().unwrap().as_num();
   vm.stack.push(Value::Int((lhs < rhs) as i32));
+}
+
+fn op_or(vm: &mut Vm){
+  let rhs = vm.stack.pop().unwrap().as_bool();
+  let lhs = vm.stack.pop().unwrap().as_bool();
+  vm.stack.push(Value::Int((lhs || rhs) as i32));
+}
+
+fn op_and(vm: &mut Vm){
+  let rhs = vm.stack.pop().unwrap().as_bool();
+  let lhs = vm.stack.pop().unwrap().as_bool();
+  vm.stack.push(Value::Int((lhs && rhs) as i32));
 }
 
 fn sin(vm: &mut Vm) {
