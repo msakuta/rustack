@@ -8,31 +8,45 @@
     x 4 * y 4 * 4 4 rectangle
 } def
 
+/my_for {
+    2 index 1 +
+    2 index
+    2 index
+    my_for
+} def
+
 /mandelconverger {
     /cimag exch def
     /creal exch def
-    /iters exch def
     /imag exch def
     /real exch def
 
-    0 255 {
-        { 4 real real * imag imag * + < }
-        { }
+    /loop {
+        /iters exch def
+        /imag exch def
+        /real exch def
+
         {
-            /iters exch def
+            4 real real * imag imag * + <
+            25 iters < or
+        }
+        { iters }
+        {
             /real_next real real * imag imag * - creal + def
             /imag 2 real * imag * cimag + def
             /real real_next def
+            real imag iters 1 + loop
         } if
-    } for
-    iters
+    } def
+
+    real imag 0 loop
 } def
 
 /mandelconverge {
     /imag exch def
     /real exch def
 
-    real imag 0 real imag mandelconverger
+    real imag real imag mandelconverger
 } def
 
 /mandel {
@@ -51,7 +65,7 @@
         0 xsteps {
             /ix exch def
             /x ix xstep * xmin + def
-            x y mandelconverge
+            x y mandelconverge 10 *
             ix iy printdensity
         } for
     } for
