@@ -17,6 +17,16 @@ $ mkdir dist && npm ci && npm run build
 and now you have a web page in `dist/`.
 
 
+## How to run development build
+
+Run
+
+```
+$ npm start
+```
+
+It will build the wasm binary and start web browser to open the page.
+
 ## Credit
 
 This app was made with template from wasm-pack [template][template-docs].
