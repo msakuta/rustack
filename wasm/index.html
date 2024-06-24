@@ -51,6 +51,7 @@
                     <button id="haltStep" disabled>Halt</button>
                 </div>
 
+                <div id="timeMessage"></div>
                 <div class="code">
                     <textarea  id="output" type="text" readonly cols="80"  rows="15" ></textarea>
                 </div>
@@ -115,6 +116,12 @@
                 <li>"save" - Call <a href="https://developer.mozilla.org/en-US/docs/Web/API/CanvasRenderingContext2D/save">CanvasRenderingContext2D.save</a></li>
                 <li>"restore" - Call <a href="https://developer.mozilla.org/en-US/docs/Web/API/CanvasRenderingContext2D/restore">CanvasRenderingContext2D.restore</a></li>
             </ul>
+
+            <h2 id="Time">Time measurement resolution</h2>
+            Due to security reasons, your browser may have reduced time resolution for measurement.
+            It is typically 0.1ms or 1ms, but can be larger.
+            Please be aware that the lower digits may be always 0 because of this rounding.
+            See <a href="https://developer.mozilla.org/en-US/docs/Web/API/Performance/now#reduced_time_precision">this page</a> for details.
         </div>
 
         <hr>
