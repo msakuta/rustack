@@ -2,7 +2,7 @@ import { init, entry, start_step } from "../pkg/index.js";
 
 init();
 
-function runCommon(process, clearOutput=true) {
+function runCommon(process, clearOutput=true, measureTime=true) {
     // Clear output
     const output = document.getElementById("output");
     if (clearOutput) {
@@ -12,11 +12,17 @@ function runCommon(process, clearOutput=true) {
         const ctx = canvas.getContext("2d");
         ctx.clearRect(0, 0, canvasRect.width, canvasRect.height);
         ctx.reset();
+        document.getElementById("timeMessage").innerHTML = "";
     }
 
     const source = document.getElementById("input").value;
     try{
+        const start = performance.now();
         const res = process(source);
+        const end = performance.now();
+        if (measureTime) {
+            document.getElementById("timeMessage").innerHTML = `Execution time: ${(end - start).toFixed(1)} ms (See <a href="#Time">notes</a>)`;
+        }
     }
     catch(e){
         output.value = e;
@@ -33,20 +39,20 @@ document.getElementById("startStep").addEventListener("click", () => runCommon((
     document.getElementById("fixedInput").innerHTML = source;
     updateButtonStates();
     return runStep();
-}));
+}, true, false));
 document.getElementById("startAutoStep").addEventListener("click", () => runCommon((source) => {
     vm = start_step(source);
     sourceText = source;
     document.getElementById("fixedInput").innerHTML = source;
     updateButtonStates();
     runAutoStep();
-}));
+}, true, false));
 document.getElementById("step").addEventListener("click", () => runCommon(runStep, false));
 document.getElementById("haltStep").addEventListener("click", () => runCommon((source) => {
     vm = null;
     updateButtonStates();
     return "Step execution halted";
-}));
+}, true, false));
 document.getElementById("clearCanvas").addEventListener("click", () => {
     const canvas = document.getElementById("canvas");
     const ctx = canvas.getContext("2d");
