@@ -190,7 +190,7 @@ document.getElementById("input").value = `
 
 const samples = document.getElementById("samples");
 
-["function.txt", "fibonacci.txt", "if.txt", "for.txt", "recurse.txt", "canvas.txt", "koch.txt", "mandel_canvas.txt"]
+["function.txt", "fibonacci.txt", "if.txt", "for.txt", "recurse.txt", "canvas.txt", "koch.txt", "mandel_canvas.txt", "mandel_canvas_recursive.txt"]
     .forEach(fileName => {
         const link = document.createElement("a");
         link.href = "#";

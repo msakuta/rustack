@@ -11,28 +11,35 @@
 /mandelconverger {
     /cimag exch def
     /creal exch def
-    /iters exch def
     /imag exch def
     /real exch def
 
-    0 255 {
-        { 4 real real * imag imag * + < }
-        { }
+    /loop {
+        /iters exch def
+        /imag exch def
+        /real exch def
+
         {
-            /iters exch def
+            4 real real * imag imag * + <
+            255 iters < or
+        }
+        { iters }
+        {
             /real_next real real * imag imag * - creal + def
             /imag 2 real * imag * cimag + def
             /real real_next def
+            real imag iters 1 + loop
         } if
-    } for
-    iters
+    } def
+
+    real imag 0 loop
 } def
 
 /mandelconverge {
     /imag exch def
     /real exch def
 
-    real imag 0 real imag mandelconverger
+    real imag real imag mandelconverger
 } def
 
 /mandel {
