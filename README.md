@@ -11,14 +11,14 @@ https://msakuta.github.io/rustack/
 This repo is the implementation of the example script used in my book:
 [Rustで作るプログラミング言語](https://www.amazon.co.jp/dp/4297141922) (Japanese).
 
-This is a sister project of [rusty-parser](https://github.com/msakuta/rusty-parser),
+This is a sister project of [mascal](https://github.com/msakuta/mascal),
 a custom programming language compiler / interpreter.
 
 It has integrated step execution feature that visualize the interpreter state at each execution step.
 
 ![screenshot-step-execution](screenshots/wasm-screenshot.png)
 
-The WebmAssembly deployment has API access to canvas rendering similar to PostScript graphics, so you can write
+The WebAssembly deployment has API access to canvas rendering similar to PostScript graphics, so you can write
 a program that can render something like below.
 This example is a rendering of [Koch curve](https://en.wikipedia.org/wiki/Koch_snowflake) which uses recursive calls. You can find the source in [source](wasm/scripts/koch.txt).
 
