@@ -1,0 +1,65 @@
+
+/printdensity {
+    /y exch def
+    /x exch def
+    /d exch def
+
+    0 d 0 set_fill_style
+    x 4 * y 4 * 4 4 rectangle
+} def
+
+/mandelconverger {
+    /cimag exch def
+    /creal exch def
+    /imag exch def
+    /real exch def
+
+    /loop {
+        /iters exch def
+        /imag exch def
+        /real exch def
+
+        {
+            4 real real * imag imag * + <
+            255 iters < or
+        }
+        { iters }
+        {
+            /real_next real real * imag imag * - creal + def
+            /imag 2 real * imag * cimag + def
+            /real real_next def
+            real imag iters 1 + loop
+        } if
+    } def
+
+    real imag 0 loop
+} def
+
+/mandelconverge {
+    /imag exch def
+    /real exch def
+
+    real imag real imag mandelconverger
+} def
+
+/mandel {
+    /ysteps exch def
+    /xsteps exch def
+    /ystep exch def
+    /xstep exch def
+    /ymin exch def
+    /xmin exch def
+
+    0 ysteps {
+        /iy exch def
+        /y iy ystep * ymin + def
+        0 xsteps {
+            /ix exch def
+            /x ix xstep * xmin + def
+            x y mandelconverge
+            ix iy printdensity
+        } for
+    } for
+} def
+
+-2.0 -2.0 0.05 0.05 80 80 mandel
